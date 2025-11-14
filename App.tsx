@@ -3,15 +3,17 @@ import { Medication } from './types';
 import useLocalStorage from './hooks/useLocalStorage';
 import AddMedicationForm from './components/AddMedicationForm';
 import MedicationList from './components/MedicationList';
-import { PillIcon, PlusIcon } from './components/Icons';
+import { PillIcon, PlusIcon, SunIcon, MoonIcon } from './components/Icons';
 import { useNotificationScheduler } from './hooks/useNotificationScheduler';
 import MedicationHistoryModal from './components/MedicationHistoryModal';
+import { useTheme } from './hooks/useTheme';
 
 function App() {
   const [medications, setMedications] = useLocalStorage<Medication[]>('medications', []);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
   const [historyMedication, setHistoryMedication] = useState<Medication | null>(null);
+  const { theme, toggleTheme } = useTheme();
 
   // Request notification permission on mount
   useEffect(() => {
@@ -72,15 +74,22 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-gold-50 text-brand-gray-800 font-sans">
-      <header className="bg-white shadow-sm sticky top-0 z-20">
+    <div className="min-h-screen bg-brand-gold-50 dark:bg-brand-gray-900 text-brand-gray-800 dark:text-brand-gray-200 font-sans transition-colors duration-300">
+      <header className="bg-white dark:bg-brand-gray-800 shadow-sm dark:shadow-none dark:border-b dark:border-brand-gray-700 sticky top-0 z-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <PillIcon className="h-8 w-8 text-brand-gold-dark" />
-            <h1 className="text-2xl font-bold text-brand-gray-900 tracking-tight">
+            <h1 className="text-2xl font-bold text-brand-gray-900 dark:text-brand-gray-100 tracking-tight">
               Medication Tracker
             </h1>
           </div>
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-full text-brand-gray-500 dark:text-brand-gray-400 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-DEFAULT dark:focus:ring-offset-brand-gray-800"
+            aria-label="Toggle theme"
+          >
+            {theme === 'light' ? <MoonIcon className="h-6 w-6" /> : <SunIcon className="h-6 w-6" />}
+          </button>
         </div>
       </header>
 
@@ -113,10 +122,10 @@ function App() {
         />
 
         {medications.length === 0 && !isFormVisible && (
-          <div className="text-center py-20 px-6 bg-white rounded-lg shadow-md border border-brand-gray-200">
-            <PillIcon className="mx-auto h-16 w-16 text-brand-gray-300"/>
-            <h3 className="mt-4 text-xl font-semibold text-brand-gray-800">No Medications Added Yet</h3>
-            <p className="mt-2 text-brand-gray-500">
+          <div className="text-center py-20 px-6 bg-white dark:bg-brand-gray-800 rounded-lg shadow-md border border-brand-gray-200 dark:border-brand-gray-700">
+            <PillIcon className="mx-auto h-16 w-16 text-brand-gray-300 dark:text-brand-gray-600"/>
+            <h3 className="mt-4 text-xl font-semibold text-brand-gray-800 dark:text-brand-gray-100">No Medications Added Yet</h3>
+            <p className="mt-2 text-brand-gray-500 dark:text-brand-gray-400">
               Click the 'Add New Medication' button to start tracking.
             </p>
             <button

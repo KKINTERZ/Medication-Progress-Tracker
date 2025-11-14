@@ -23,7 +23,7 @@ const ProgressCircle: React.FC<ProgressCircleProps> = ({ percentage, isCompleted
         className="transform -rotate-90"
       >
         <circle
-          className="text-brand-gray-200"
+          className="text-brand-gray-200 dark:text-brand-gray-700"
           strokeWidth={stroke}
           stroke="currentColor"
           fill="transparent"
@@ -45,7 +45,7 @@ const ProgressCircle: React.FC<ProgressCircleProps> = ({ percentage, isCompleted
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className={`text-2xl font-bold ${isCompleted ? 'text-brand-success-dark' : 'text-brand-gold-dark'}`}>
+        <span className={`text-2xl font-bold ${isCompleted ? 'text-brand-success-dark dark:text-brand-success-light' : 'text-brand-gold-dark dark:text-brand-gold-light'}`}>
           {Math.round(percentage)}%
         </span>
       </div>

@@ -55,3 +55,21 @@ export const ShareIcon: React.FC<IconProps> = (props) => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.195.025.39.044.586.06.336.029.67.043 1.006.043h2.383c.337 0 .67-.014 1.006-.043.196-.017.391-.036.586-.06m-3.982 2.186a2.25 2.25 0 01-1.171-4.011l1.63-1.192a2.25 2.25 0 012.342 0l1.63 1.192a2.25 2.25 0 01-1.17 4.011m-3.982 0h-2.383a2.25 2.25 0 00-2.25 2.25v2.25a2.25 2.25 0 002.25 2.25h13.5a2.25 2.25 0 002.25-2.25v-2.25a2.25 2.25 0 00-2.25-2.25h-2.383m-3.982 0a2.25 2.25 0 00-1.171-1.823l1.63-1.192a2.25 2.25 0 002.342 0l1.63 1.192a2.25 2.25 0 00-1.17 1.823m-3.982 0h.008v.008h-.008v-.008z" />
     </svg>
 );
+
+export const ClockIcon: React.FC<IconProps> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+);
+
+export const SunIcon: React.FC<IconProps> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.95-4.243l-1.59-1.591M3.75 12H6m4.243-4.95l1.59-1.591M12 12a4.5 4.5 0 00-4.5 4.5v.008c0 .004 0 .008.002.012h8.996a.75.75 0 01.002-.012v-.008A4.5 4.5 0 0012 12z" />
+  </svg>
+);
+
+export const MoonIcon: React.FC<IconProps> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+  </svg>
+);

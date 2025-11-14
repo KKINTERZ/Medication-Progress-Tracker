@@ -84,22 +84,22 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
   };
 
   return (
-    <div className="w-full max-w-md bg-white rounded-xl shadow-2xl p-6 sm:p-8 animate-fade-in-up">
+    <div className="w-full max-w-md bg-white dark:bg-brand-gray-800 rounded-xl shadow-2xl p-6 sm:p-8 animate-fade-in-up">
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-brand-gray-900">{isEditMode ? 'Edit Medication' : 'Add New Medication'}</h2>
-          <p className="text-sm text-brand-gray-500 mt-1">
+          <h2 className="text-2xl font-bold text-brand-gray-900 dark:text-brand-gray-100">{isEditMode ? 'Edit Medication' : 'Add New Medication'}</h2>
+          <p className="text-sm text-brand-gray-500 dark:text-brand-gray-400 mt-1">
             {isEditMode ? 'Update the details of your prescription.' : 'Enter the details of your prescription.'}
           </p>
         </div>
-        <button onClick={onCancel} className="p-1 rounded-full text-brand-gray-400 hover:bg-brand-gray-100 hover:text-brand-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-gold-DEFAULT">
+        <button onClick={onCancel} className="p-1 rounded-full text-brand-gray-400 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 hover:text-brand-gray-600 dark:hover:text-brand-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-gold-DEFAULT">
           <XIcon className="w-6 h-6" />
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-brand-gray-700">
+          <label htmlFor="name" className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300">
             Medication Name
           </label>
           <div className="mt-1">
@@ -108,41 +108,43 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="appearance-none block w-full px-3 py-2 border border-brand-gray-300 rounded-md shadow-sm placeholder-brand-gray-400 focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT sm:text-sm"
+              className="appearance-none block w-full px-3 py-2 border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 rounded-md shadow-sm placeholder-brand-gray-400 dark:placeholder-brand-gray-500 focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT sm:text-sm"
               placeholder="e.g., Vitamin D"
             />
           </div>
         </div>
-        <div>
-          <label htmlFor="total-tablets" className="block text-sm font-medium text-brand-gray-700">
-            Total Tablets in Prescription
-          </label>
-          <div className="mt-1">
-            <input
-              type="number"
-              id="total-tablets"
-              value={totalTablets}
-              onChange={(e) => setTotalTablets(e.target.value)}
-              className="appearance-none block w-full px-3 py-2 border border-brand-gray-300 rounded-md shadow-sm placeholder-brand-gray-400 focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT sm:text-sm"
-              placeholder="e.g., 30"
-              min="1"
-            />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
+          <div>
+            <label htmlFor="total-tablets" className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300">
+              Total Tablets
+            </label>
+            <div className="mt-1">
+              <input
+                type="number"
+                id="total-tablets"
+                value={totalTablets}
+                onChange={(e) => setTotalTablets(e.target.value)}
+                className="appearance-none block w-full px-3 py-2 border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 rounded-md shadow-sm placeholder-brand-gray-400 dark:placeholder-brand-gray-500 focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT sm:text-sm"
+                placeholder="e.g., 30"
+                min="1"
+              />
+            </div>
           </div>
-        </div>
-        <div>
-          <label htmlFor="tablets-per-day" className="block text-sm font-medium text-brand-gray-700">
-            Tablets to Take Per Day
-          </label>
-          <div className="mt-1">
-            <input
-              type="number"
-              id="tablets-per-day"
-              value={tabletsPerDay}
-              onChange={(e) => setTabletsPerDay(e.target.value)}
-              className="appearance-none block w-full px-3 py-2 border border-brand-gray-300 rounded-md shadow-sm placeholder-brand-gray-400 focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT sm:text-sm"
-              placeholder="e.g., 2"
-              min="1"
-            />
+          <div>
+            <label htmlFor="tablets-per-day" className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300">
+              Doses Per Day
+            </label>
+            <div className="mt-1">
+              <input
+                type="number"
+                id="tablets-per-day"
+                value={tabletsPerDay}
+                onChange={(e) => setTabletsPerDay(e.target.value)}
+                className="appearance-none block w-full px-3 py-2 border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 rounded-md shadow-sm placeholder-brand-gray-400 dark:placeholder-brand-gray-500 focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT sm:text-sm"
+                placeholder="e.g., 2"
+                min="1"
+              />
+            </div>
           </div>
         </div>
 
@@ -155,11 +157,11 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
                     type="checkbox"
                     checked={remindersEnabled}
                     onChange={(e) => setRemindersEnabled(e.target.checked)}
-                    className="focus:ring-brand-gold-DEFAULT h-4 w-4 text-brand-gold-DEFAULT border-gray-300 rounded"
+                    className="focus:ring-brand-gold-DEFAULT h-4 w-4 text-brand-gold-DEFAULT border-gray-300 dark:border-gray-500 rounded"
                 />
                 </div>
                 <div className="ml-3 text-sm">
-                <label htmlFor="reminders-enabled" className="font-medium text-gray-700">
+                <label htmlFor="reminders-enabled" className="font-medium text-gray-700 dark:text-brand-gray-300">
                     Set Reminders
                 </label>
                 </div>
@@ -167,7 +169,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
         </div>
 
         {remindersEnabled && (
-            <div className="p-4 border border-brand-gray-200 rounded-lg space-y-4 bg-brand-gold-light">
+            <div className="p-4 border border-brand-gray-200 dark:border-brand-gray-700 rounded-lg space-y-4 bg-brand-gold-light dark:bg-brand-gray-700/50">
                 {reminderTimes.map((time, index) => (
                     <div key={index} className="flex items-center gap-x-3">
                         <label htmlFor={`reminder-time-${index}`} className="sr-only">Reminder time {index+1}</label>
@@ -176,20 +178,20 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
                             type="time"
                             value={time}
                             onChange={(e) => handleReminderTimeChange(index, e.target.value)}
-                            className="appearance-none block w-full px-3 py-2 border border-brand-gray-300 rounded-md shadow-sm placeholder-brand-gray-400 focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT sm:text-sm"
+                            className="appearance-none block w-full px-3 py-2 border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 rounded-md shadow-sm placeholder-brand-gray-400 dark:placeholder-brand-gray-500 focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT sm:text-sm"
                         />
-                         <button type="button" onClick={() => handleRemoveReminder(index)} className="p-1 rounded-full text-brand-gray-400 hover:bg-brand-gray-200 hover:text-brand-gray-600 focus:outline-none" aria-label="Remove reminder time">
+                         <button type="button" onClick={() => handleRemoveReminder(index)} className="p-1 rounded-full text-brand-gray-400 hover:bg-brand-gray-200 dark:hover:bg-brand-gray-600 hover:text-brand-gray-600 dark:hover:text-brand-gray-200 focus:outline-none" aria-label="Remove reminder time">
                             <XIcon className="w-5 h-5"/>
                         </button>
                     </div>
                 ))}
                  {reminderTimes.length < perDayCount && (
-                    <button type="button" onClick={handleAddReminder} className="w-full flex items-center justify-center gap-x-2 text-sm font-medium text-brand-gold-DEFAULT hover:text-brand-gold-dark py-2 px-3 border-2 border-dashed border-brand-gray-300 rounded-md hover:border-brand-gold-DEFAULT">
+                    <button type="button" onClick={handleAddReminder} className="w-full flex items-center justify-center gap-x-2 text-sm font-medium text-brand-gold-DEFAULT hover:text-brand-gold-dark py-2 px-3 border-2 border-dashed border-brand-gray-300 dark:border-brand-gray-500 rounded-md hover:border-brand-gold-DEFAULT dark:hover:border-brand-gold-DEFAULT">
                         <BellIcon className="w-5 h-5" />
                         Add Reminder Time
                     </button>
                  )}
-                 {perDayCount === 0 && <p className="text-xs text-brand-gray-500 text-center">Set 'Tablets to Take Per Day' to add reminders.</p>}
+                 {perDayCount === 0 && <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400 text-center">Set 'Doses Per Day' to add reminders.</p>}
             </div>
         )}
 
@@ -199,7 +201,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
             <button
                 type="button"
                 onClick={onCancel}
-                className="px-4 py-2 text-sm font-medium text-brand-gray-700 bg-white border border-brand-gray-300 rounded-md shadow-sm hover:bg-brand-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-DEFAULT"
+                className="px-4 py-2 text-sm font-medium text-brand-gray-700 dark:text-brand-gray-200 bg-white dark:bg-brand-gray-700 border border-brand-gray-300 dark:border-brand-gray-600 rounded-md shadow-sm hover:bg-brand-gray-50 dark:hover:bg-brand-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-DEFAULT"
             >
                 Cancel
             </button>
