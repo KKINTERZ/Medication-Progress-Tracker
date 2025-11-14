@@ -25,25 +25,12 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
       setTabletsPerDay(String(medicationToEdit.tabletsPerDay));
       const hasReminders = medicationToEdit.reminders && medicationToEdit.reminders.length > 0;
       setRemindersEnabled(hasReminders);
-      setReminderTimes(hasReminders ? medicationToEdit.reminders! : ['09:00']);
+      setReminderTimes(hasReminders ? [...medicationToEdit.reminders!].sort() : ['09:00']);
     }
   }, [medicationToEdit]);
 
-  const perDayCount = parseInt(tabletsPerDay, 10) || 0;
-
-  useEffect(() => {
-    // This effect ensures that if the user reduces the number of tablets per day,
-    // the number of reminder fields is also reduced to match.
-    // It no longer re-adds a reminder if the user deletes the last one, giving them full control.
-    if (perDayCount > 0 && reminderTimes.length > perDayCount) {
-      setReminderTimes(reminderTimes.slice(0, perDayCount));
-    }
-  }, [perDayCount, reminderTimes.length]);
-
   const handleAddReminder = () => {
-    if (reminderTimes.length < perDayCount) {
-      setReminderTimes([...reminderTimes, '17:00']);
-    }
+    setReminderTimes(times => [...times, '17:00'].sort());
   };
 
   const handleRemoveReminder = (index: number) => {
@@ -55,11 +42,15 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
     newTimes[index] = value;
     setReminderTimes(newTimes);
   };
+  
+  const sortReminders = () => {
+    setReminderTimes(times => [...times].sort());
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const total = parseInt(totalTablets, 10);
-    const perDay = perDayCount;
+    const perDay = parseInt(tabletsPerDay, 10) || 0;
 
     if (!name.trim() || !total || !perDay) {
       setError('All fields are required and must be valid numbers.');
@@ -75,11 +66,12 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
     }
 
     setError('');
+    const sortedReminders = [...reminderTimes].sort();
     onSave({
       name,
       totalTablets: total,
       tabletsPerDay: perDay,
-      reminders: remindersEnabled ? reminderTimes : [],
+      reminders: remindersEnabled ? sortedReminders : [],
     }, medicationToEdit?.id);
   };
 
@@ -169,7 +161,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
         </div>
 
         {remindersEnabled && (
-            <div className="p-4 border border-brand-gray-200 dark:border-brand-gray-700 rounded-lg space-y-4 bg-brand-gold-light dark:bg-brand-gray-700/50">
+            <div className="p-4 border border-brand-gray-200 dark:border-brand-gray-700 rounded-lg space-y-4">
                 {reminderTimes.map((time, index) => (
                     <div key={index} className="flex items-center gap-x-3">
                         <label htmlFor={`reminder-time-${index}`} className="sr-only">Reminder time {index+1}</label>
@@ -178,6 +170,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
                             type="time"
                             value={time}
                             onChange={(e) => handleReminderTimeChange(index, e.target.value)}
+                            onBlur={sortReminders}
                             className="appearance-none block w-full px-3 py-2 border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 rounded-md shadow-sm placeholder-brand-gray-400 dark:placeholder-brand-gray-500 focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT sm:text-sm"
                         />
                          <button type="button" onClick={() => handleRemoveReminder(index)} className="p-1 rounded-full text-brand-gray-400 hover:bg-brand-gray-200 dark:hover:bg-brand-gray-600 hover:text-brand-gray-600 dark:hover:text-brand-gray-200 focus:outline-none" aria-label="Remove reminder time">
@@ -185,13 +178,14 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
                         </button>
                     </div>
                 ))}
-                 {reminderTimes.length < perDayCount && (
-                    <button type="button" onClick={handleAddReminder} className="w-full flex items-center justify-center gap-x-2 text-sm font-medium text-brand-gold-DEFAULT hover:text-brand-gold-dark py-2 px-3 border-2 border-dashed border-brand-gray-300 dark:border-brand-gray-500 rounded-md hover:border-brand-gold-DEFAULT dark:hover:border-brand-gold-DEFAULT">
-                        <BellIcon className="w-5 h-5" />
-                        Add Reminder Time
-                    </button>
-                 )}
-                 {perDayCount === 0 && <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400 text-center">Set 'Doses Per Day' to add reminders.</p>}
+                <button
+                    type="button"
+                    onClick={handleAddReminder}
+                    className="w-full flex items-center justify-center gap-x-2 text-sm font-medium text-brand-gold-dark dark:text-brand-gold-light py-2 px-3 bg-brand-gold-50 dark:bg-brand-gray-700 border-2 border-dashed border-brand-gold/50 dark:border-brand-gray-600 rounded-md hover:border-brand-gold dark:hover:border-brand-gold-light hover:bg-brand-gold-light/50 dark:hover:bg-brand-gray-600/50 transition-colors"
+                >
+                    <BellIcon className="w-5 h-5" />
+                    Add Reminder Time
+                </button>
             </div>
         )}
 
