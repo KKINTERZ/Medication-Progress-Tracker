@@ -3,7 +3,7 @@ import { Medication, UserProfile } from './types';
 import useLocalStorage from './hooks/useLocalStorage';
 import AddMedicationForm from './components/AddMedicationForm';
 import MedicationList from './components/MedicationList';
-import { PillIcon, PlusIcon, SunIcon, MoonIcon, MenuIcon } from './components/Icons';
+import { PlusIcon, SunIcon, MoonIcon, MenuIcon } from './components/Icons';
 import { useNotificationScheduler } from './hooks/useNotificationScheduler';
 import MedicationHistoryModal from './components/MedicationHistoryModal';
 import { useTheme } from './hooks/useTheme';
@@ -12,6 +12,7 @@ import UserProfileDisplay from './components/UserProfile';
 import RealTimeClock from './components/RealTimeClock';
 import { GOOGLE_CLIENT_ID } from './config';
 import SlidingMenu from './components/SlidingMenu';
+import Logo from './components/Logo';
 
 // FIX: Replaced the incomplete global type for 'google' with a more specific one
 // to resolve TypeScript errors. This definition makes the 'google' object and its
@@ -51,11 +52,12 @@ declare global {
 
 const LoginPrompt: React.FC = () => (
   <div className="text-center py-20 px-6 bg-white dark:bg-brand-gray-800 rounded-lg shadow-md border border-brand-gray-200 dark:border-brand-gray-700">
-    <PillIcon className="mx-auto h-16 w-16 text-brand-gray-300 dark:text-brand-gray-600"/>
+    <Logo className="mx-auto h-20 w-20 opacity-30 dark:opacity-50"/>
     <h3 className="mt-4 text-xl font-semibold text-brand-gray-800 dark:text-brand-gray-100">Welcome to Medication Tracker</h3>
     <p className="mt-2 text-brand-gray-500 dark:text-brand-gray-400">
       Please sign in with your Google account to continue.
     </p>
+    <div id="google-signin-button-container" className="mt-6 flex justify-center"></div>
   </div>
 );
 
@@ -93,19 +95,34 @@ function App() {
         client_id: GOOGLE_CLIENT_ID,
         callback: handleLoginSuccess,
         auto_select: true,
-        use_fedcm_for_prompt: false, // FIX: Disable FedCM to prevent NotAllowedError
+        use_fedcm_for_prompt: true, 
       });
 
-      // Show the One Tap prompt for returning users if not logged in
+      // If the user is not logged in, show prompts and buttons.
       if (!userProfile) {
+        // Trigger the One Tap prompt for returning users.
         window.google.accounts.id.prompt();
+        
+        // Also render the manual sign-in button in case One Tap is closed or fails.
+        const googleButtonContainer = document.getElementById('google-signin-button-container');
+        if (googleButtonContainer) {
+            // Clear container to prevent duplicate buttons on re-render
+            googleButtonContainer.innerHTML = ''; 
+            window.google.accounts.id.renderButton(
+                googleButtonContainer,
+                { theme: theme === 'light' ? 'outline' : 'filled_black', size: 'medium', type: 'standard', text: 'signin_with' }
+            );
+        }
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProfile]);
+  }, [userProfile, theme]); // Rerun when user logs out or theme changes
 
 
   const handleLogout = () => {
+    if (window.google?.accounts?.id) {
+        window.google.accounts.id.disableAutoSelect();
+    }
     setUserProfile(null);
   };
   
@@ -191,7 +208,7 @@ function App() {
             >
               <MenuIcon className="h-6 w-6" />
             </button>
-            <PillIcon className="h-8 w-8 text-brand-gold-dark hidden sm:block" />
+            <Logo className="h-8 w-8 hidden sm:block" />
           </div>
 
           {/* Center Section (Responsive) */}
@@ -257,7 +274,7 @@ function App() {
 
             {medications.length === 0 && !isFormVisible && (
               <div className="text-center py-20 px-6 bg-white dark:bg-brand-gray-800 rounded-lg shadow-md border border-brand-gray-200 dark:border-brand-gray-700">
-                <PillIcon className="mx-auto h-16 w-16 text-brand-gray-300 dark:text-brand-gray-600"/>
+                <Logo className="mx-auto h-20 w-20 opacity-30 dark:opacity-50"/>
                 <h3 className="mt-4 text-xl font-semibold text-brand-gray-800 dark:text-brand-gray-100">No Medications Added Yet</h3>
                 <p className="mt-2 text-brand-gray-500 dark:text-brand-gray-400">
                   Click the 'Add New Medication' button to start tracking.

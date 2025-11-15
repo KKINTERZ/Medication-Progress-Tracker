@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Medication } from '../types';
-import { PillIcon, PlusIcon, XIcon, BellIcon, EditIcon } from './Icons';
+// FIX: Removed 'PillIcon' from import as it is not exported from './Icons'.
+import { PlusIcon, XIcon, BellIcon, EditIcon } from './Icons';
 
 interface AddMedicationFormProps {
   onSave: (data: Omit<Medication, 'id' | 'startDate' | 'dosesTaken'>, id?: string) => void;

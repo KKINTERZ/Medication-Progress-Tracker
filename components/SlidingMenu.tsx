@@ -1,5 +1,6 @@
 import React from 'react';
-import { XIcon, ScanIcon, SparklesIcon, PillIcon } from './Icons';
+import { XIcon, ScanIcon, SparklesIcon } from './Icons';
+import Logo from './Logo';
 
 interface SlidingMenuProps {
   isOpen: boolean;
@@ -25,7 +26,7 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ isOpen, onClose, isAutoLoggin
         <div className="flex flex-col h-full">
           <div className="flex justify-between items-center p-4 border-b border-brand-gray-200 dark:border-brand-gray-700">
             <div className="flex items-center gap-x-2">
-              <PillIcon className="w-6 h-6 text-brand-gold-dark" />
+              <Logo className="w-6 h-6" />
               <h2 id="menu-title" className="text-lg font-bold text-brand-gray-900 dark:text-brand-gray-100">
                 Menu
               </h2>

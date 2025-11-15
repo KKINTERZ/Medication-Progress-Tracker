@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { UserProfile } from '../types';
-import { MoonIcon, SunIcon } from './Icons';
+import { SwitchAccountIcon, LogoutIcon } from './Icons';
 
 interface UserProfileDisplayProps {
     user: UserProfile | null;
@@ -9,29 +9,12 @@ interface UserProfileDisplayProps {
 }
 
 const UserProfileDisplay: React.FC<UserProfileDisplayProps> = ({ user, onLogin, onLogout }) => {
-    const googleButtonRef = useRef<HTMLDivElement>(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [theme, setTheme] = useState<'light' | 'dark'>('light'); // Local state for button theme
 
-    useEffect(() => {
-        // Set theme based on document class for button rendering
-        const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-        setTheme(currentTheme);
-
-        // Render the button if the user is not logged in and the container is empty.
-        // Assumes google.accounts.id.initialize has already been called in the App component.
-        if (!user && googleButtonRef.current && !googleButtonRef.current.hasChildNodes()) {
-            if (window.google?.accounts?.id) {
-                window.google.accounts.id.renderButton(
-                    googleButtonRef.current,
-                    { theme: currentTheme === 'light' ? 'outline' : 'filled_black', size: 'medium', type: 'standard', text: 'signin_with' }
-                );
-            }
-        }
-    }, [user, onLogin]);
-
+    // If there is no user, this component renders nothing.
+    // The login prompt (with the button) is now handled by the App component.
     if (!user) {
-        return <div ref={googleButtonRef} />;
+        return null;
     }
 
     return (
@@ -58,10 +41,19 @@ const UserProfileDisplay: React.FC<UserProfileDisplayProps> = ({ user, onLogin, 
                         </div>
                         <button
                             onClick={onLogout}
-                            className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50"
+                            className="w-full text-left px-4 py-2 text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-600 flex items-center gap-x-2"
                             role="menuitem"
                         >
-                            Sign Out
+                            <SwitchAccountIcon className="w-5 h-5" />
+                            <span>Switch Account</span>
+                        </button>
+                        <button
+                            onClick={onLogout}
+                            className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 flex items-center gap-x-2"
+                            role="menuitem"
+                        >
+                            <LogoutIcon className="w-5 h-5" />
+                            <span>Sign Out</span>
                         </button>
                     </div>
                 </div>
