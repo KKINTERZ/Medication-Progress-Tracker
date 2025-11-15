@@ -8,3 +8,10 @@ export interface Medication {
   dosesTaken: Record<string, number>; // Maps date 'YYYY-MM-DD' to number of doses taken
   reminders?: string[]; // Array of reminder times in 'HH:mm' format
 }
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  picture: string;
+}
