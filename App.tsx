@@ -3,12 +3,14 @@ import { Medication, UserProfile } from './types';
 import useLocalStorage from './hooks/useLocalStorage';
 import AddMedicationForm from './components/AddMedicationForm';
 import MedicationList from './components/MedicationList';
-import { PillIcon, PlusIcon, SunIcon, MoonIcon, EditIcon } from './components/Icons';
+import { PillIcon, PlusIcon, SunIcon, MoonIcon } from './components/Icons';
 import { useNotificationScheduler } from './hooks/useNotificationScheduler';
 import MedicationHistoryModal from './components/MedicationHistoryModal';
 import { useTheme } from './hooks/useTheme';
 import { jwtDecode } from 'jwt-decode';
 import UserProfileDisplay from './components/UserProfile';
+import RealTimeClock from './components/RealTimeClock';
+import { GOOGLE_CLIENT_ID } from './config';
 
 // FIX: Replaced the incomplete global type for 'google' with a more specific one
 // to resolve TypeScript errors. This definition makes the 'google' object and its
@@ -23,6 +25,7 @@ declare global {
         initialize(config: {
           client_id: string;
           callback: (response: CredentialResponse) => void;
+          auto_select?: boolean;
         }): void;
         renderButton(
           parent: HTMLElement,
@@ -34,6 +37,7 @@ declare global {
             [key: string]: unknown;
           }
         ): void;
+        prompt(notification?: (notification: unknown) => void): void;
         disableAutoSelect(): void;
       };
     };
@@ -79,8 +83,24 @@ function App() {
     setUserProfile(profile);
   };
 
+  useEffect(() => {
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleLoginSuccess,
+        auto_select: true,
+      });
+
+      // Show the One Tap prompt for returning users if not logged in
+      if (!userProfile) {
+        window.google.accounts.id.prompt();
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userProfile]);
+
+
   const handleLogout = () => {
-    google.accounts.id.disableAutoSelect();
     setUserProfile(null);
   };
 
@@ -142,20 +162,33 @@ function App() {
   return (
     <div className="min-h-screen bg-brand-gold-50 dark:bg-brand-gray-900 text-brand-gray-800 dark:text-brand-gray-200 font-sans transition-colors duration-300">
       <header className="bg-white dark:bg-brand-gray-800 shadow-sm dark:shadow-none dark:border-b dark:border-brand-gray-700 sticky top-0 z-20">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center relative">
           <div className="flex items-center space-x-3">
             <PillIcon className="h-8 w-8 text-brand-gold-dark" />
-            <h1 className="text-2xl font-bold text-brand-gray-900 dark:text-brand-gray-100 tracking-tight">
+            <h1 className="text-2xl font-bold text-brand-gray-900 dark:text-brand-gray-100 tracking-tight hidden sm:block">
               Medication Tracker
             </h1>
           </div>
-          <UserProfileDisplay
-            user={userProfile}
-            onLogin={handleLoginSuccess}
-            onLogout={handleLogout}
-            theme={theme}
-            toggleTheme={toggleTheme}
-          />
+          
+          <div className="absolute left-1/2 -translate-x-1/2">
+            <RealTimeClock />
+          </div>
+          
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full text-brand-gray-500 dark:text-brand-gray-400 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-brand-gray-800 focus:ring-brand-gold-DEFAULT"
+              aria-label="Toggle theme"
+            >
+              {theme === 'light' ? <MoonIcon className="h-6 w-6" /> : <SunIcon className="h-6 w-6" />}
+            </button>
+            <UserProfileDisplay
+              user={userProfile}
+              onLogin={handleLoginSuccess}
+              onLogout={handleLogout}
+              theme={theme}
+            />
+          </div>
         </div>
       </header>
 

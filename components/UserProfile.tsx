@@ -1,27 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { UserProfile } from '../types';
 import { MoonIcon, SunIcon } from './Icons';
-import { GOOGLE_CLIENT_ID } from '../config';
 
 interface UserProfileDisplayProps {
     user: UserProfile | null;
     onLogin: (response: google.CredentialResponse) => void;
     onLogout: () => void;
     theme: 'light' | 'dark';
-    toggleTheme: () => void;
 }
 
-const UserProfileDisplay: React.FC<UserProfileDisplayProps> = ({ user, onLogin, onLogout, theme, toggleTheme }) => {
+const UserProfileDisplay: React.FC<UserProfileDisplayProps> = ({ user, onLogin, onLogout, theme }) => {
     const googleButtonRef = useRef<HTMLDivElement>(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     useEffect(() => {
-        if (!user && googleButtonRef.current) {
+        // Render the button if the user is not logged in and the container is empty.
+        // Assumes google.accounts.id.initialize has already been called in the App component.
+        if (!user && googleButtonRef.current && !googleButtonRef.current.hasChildNodes()) {
             if (window.google?.accounts?.id) {
-                window.google.accounts.id.initialize({
-                    client_id: GOOGLE_CLIENT_ID,
-                    callback: onLogin,
-                });
                 window.google.accounts.id.renderButton(
                     googleButtonRef.current,
                     { theme: theme === 'light' ? 'outline' : 'filled_black', size: 'medium', type: 'standard', text: 'signin_with' }
@@ -35,7 +31,7 @@ const UserProfileDisplay: React.FC<UserProfileDisplayProps> = ({ user, onLogin, 
     }
 
     return (
-        <div className="relative flex items-center space-x-4">
+        <div className="relative">
             <button
                 onClick={() => setIsDropdownOpen(prev => !prev)}
                 className="flex items-center space-x-2 focus:outline-none"
@@ -56,14 +52,6 @@ const UserProfileDisplay: React.FC<UserProfileDisplayProps> = ({ user, onLogin, 
                             <p className="font-semibold truncate">{user.name}</p>
                             <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400 truncate">{user.email}</p>
                         </div>
-                        <button
-                            onClick={toggleTheme}
-                            className="w-full text-left px-4 py-2 text-sm text-brand-gray-700 dark:text-brand-gray-200 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-600 flex items-center gap-x-3"
-                            role="menuitem"
-                        >
-                            {theme === 'light' ? <MoonIcon className="h-5 w-5" /> : <SunIcon className="h-5 w-5" />}
-                            <span>Switch to {theme === 'light' ? 'Dark' : 'Light'} Mode</span>
-                        </button>
                         <button
                             onClick={onLogout}
                             className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50"
