@@ -3,16 +3,17 @@ import React from 'react';
 interface ProgressCircleProps {
   percentage: number;
   isCompleted: boolean;
+  children?: React.ReactNode;
 }
 
-const ProgressCircle: React.FC<ProgressCircleProps> = ({ percentage, isCompleted }) => {
+const ProgressCircle: React.FC<ProgressCircleProps> = ({ percentage, isCompleted, children }) => {
   const radius = 50;
   const stroke = 10;
   const normalizedRadius = radius - stroke * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-  const progressColor = isCompleted ? 'stroke-brand-success-DEFAULT' : 'stroke-brand-gold-DEFAULT';
+  const progressColor = isCompleted ? 'stroke-brand-success-DEFAULT' : 'stroke-brand-gray-800 dark:stroke-brand-gray-200';
 
   return (
     <div className="relative w-32 h-32">
@@ -45,9 +46,11 @@ const ProgressCircle: React.FC<ProgressCircleProps> = ({ percentage, isCompleted
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className={`text-2xl font-bold ${isCompleted ? 'text-brand-success-dark dark:text-brand-success-light' : 'text-brand-gold-dark dark:text-brand-gold-light'}`}>
-          {Math.round(percentage)}%
-        </span>
+        {children ?? (
+            <span className={`text-2xl font-bold ${isCompleted ? 'text-brand-success-dark dark:text-brand-success-light' : 'text-brand-gold-dark dark:text-brand-gold-light'}`}>
+            {Math.round(percentage)}%
+            </span>
+        )}
       </div>
     </div>
   );

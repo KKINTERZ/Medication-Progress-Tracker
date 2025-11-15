@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Medication } from './types';
 import useLocalStorage from './hooks/useLocalStorage';
 import AddMedicationForm from './components/AddMedicationForm';
@@ -24,6 +24,10 @@ function App() {
 
   // Run the notification scheduler
   useNotificationScheduler(medications);
+
+  const uniqueMedicationNames = useMemo(() => {
+    return [...new Set(medications.map(med => med.name.trim()).filter(Boolean))].sort();
+  }, [medications]);
 
   const handleAddNewClick = () => {
     setEditingMedication(null);
@@ -101,6 +105,7 @@ function App() {
                 onSave={handleSaveMedication} 
                 onCancel={handleCancelForm}
                 medicationToEdit={editingMedication}
+                medicationNames={uniqueMedicationNames}
               />
             </div>
           </div>

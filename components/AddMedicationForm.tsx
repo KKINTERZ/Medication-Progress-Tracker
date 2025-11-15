@@ -6,12 +6,14 @@ interface AddMedicationFormProps {
   onSave: (data: Omit<Medication, 'id' | 'startDate' | 'dosesTaken'>, id?: string) => void;
   onCancel: () => void;
   medicationToEdit?: Medication | null;
+  medicationNames: string[];
 }
 
-const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel, medicationToEdit }) => {
+const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel, medicationToEdit, medicationNames }) => {
   const [name, setName] = useState('');
   const [totalTablets, setTotalTablets] = useState('');
-  const [tabletsPerDay, setTabletsPerDay] = useState('');
+  const [dosesPerDay, setDosesPerDay] = useState('');
+  const [tabletsPerDose, setTabletsPerDose] = useState('1');
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [reminderTimes, setReminderTimes] = useState<string[]>(['09:00']);
   const [error, setError] = useState('');
@@ -22,7 +24,8 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
     if (medicationToEdit) {
       setName(medicationToEdit.name);
       setTotalTablets(String(medicationToEdit.totalTablets));
-      setTabletsPerDay(String(medicationToEdit.tabletsPerDay));
+      setDosesPerDay(String(medicationToEdit.dosesPerDay));
+      setTabletsPerDose(String(medicationToEdit.tabletsPerDose || 1));
       const hasReminders = medicationToEdit.reminders && medicationToEdit.reminders.length > 0;
       setRemindersEnabled(hasReminders);
       setReminderTimes(hasReminders ? [...medicationToEdit.reminders!].sort() : ['09:00']);
@@ -50,18 +53,19 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const total = parseInt(totalTablets, 10);
-    const perDay = parseInt(tabletsPerDay, 10) || 0;
+    const perDay = parseInt(dosesPerDay, 10);
+    const perDose = parseInt(tabletsPerDose, 10);
 
-    if (!name.trim() || !total || !perDay) {
+    if (!name.trim() || !total || !perDay || !perDose) {
       setError('All fields are required and must be valid numbers.');
       return;
     }
-    if (total <= 0 || perDay <= 0) {
-      setError('Tablet counts must be greater than zero.');
+    if (total <= 0 || perDay <= 0 || perDose <= 0) {
+      setError('Tablet and dose counts must be greater than zero.');
       return;
     }
-    if (perDay > total) {
-      setError('Tablets per day cannot exceed the total number of tablets.');
+    if ((perDay * perDose) > total) {
+      setError('Daily intake cannot exceed the total number of tablets.');
       return;
     }
 
@@ -70,7 +74,8 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
     onSave({
       name,
       totalTablets: total,
-      tabletsPerDay: perDay,
+      dosesPerDay: perDay,
+      tabletsPerDose: perDose,
       reminders: remindersEnabled ? sortedReminders : [],
     }, medicationToEdit?.id);
   };
@@ -98,15 +103,22 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
             <input
               type="text"
               id="name"
+              list="medication-names"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="appearance-none block w-full px-3 py-2 border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 rounded-md shadow-sm placeholder-brand-gray-400 dark:placeholder-brand-gray-500 focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT sm:text-sm"
               placeholder="e.g., Vitamin D"
             />
+            <datalist id="medication-names">
+              {medicationNames.map((medName) => (
+                <option key={medName} value={medName} />
+              ))}
+            </datalist>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
-          <div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-6">
+          <div className="sm:col-span-1">
             <label htmlFor="total-tablets" className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300">
               Total Tablets
             </label>
@@ -123,17 +135,33 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
             </div>
           </div>
           <div>
-            <label htmlFor="tablets-per-day" className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300">
+            <label htmlFor="doses-per-day" className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300">
               Doses Per Day
             </label>
             <div className="mt-1">
               <input
                 type="number"
-                id="tablets-per-day"
-                value={tabletsPerDay}
-                onChange={(e) => setTabletsPerDay(e.target.value)}
+                id="doses-per-day"
+                value={dosesPerDay}
+                onChange={(e) => setDosesPerDay(e.target.value)}
                 className="appearance-none block w-full px-3 py-2 border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 rounded-md shadow-sm placeholder-brand-gray-400 dark:placeholder-brand-gray-500 focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT sm:text-sm"
                 placeholder="e.g., 2"
+                min="1"
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="tablets-per-dose" className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300">
+              Tablets Per Dose
+            </label>
+            <div className="mt-1">
+              <input
+                type="number"
+                id="tablets-per-dose"
+                value={tabletsPerDose}
+                onChange={(e) => setTabletsPerDose(e.target.value)}
+                className="appearance-none block w-full px-3 py-2 border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 rounded-md shadow-sm placeholder-brand-gray-400 dark:placeholder-brand-gray-500 focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT sm:text-sm"
+                placeholder="e.g., 1"
                 min="1"
               />
             </div>

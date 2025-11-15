@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Medication } from '../types';
-import { PillIcon, CalendarIcon, TrashIcon, BellIcon, EditIcon, HistoryIcon, ShareIcon, ClockIcon } from './Icons';
+import { PillIcon, CalendarIcon, TrashIcon, BellIcon, EditIcon, HistoryIcon, ShareIcon } from './Icons';
+import ProgressBar from './ProgressBar';
 
 interface MedicationCardProps {
   medication: Medication;
@@ -10,9 +11,14 @@ interface MedicationCardProps {
   onShowHistory: (med: Medication) => void;
 }
 
-const getTodayDateString = () => {
+/**
+ * Gets the current date in the user's local timezone and formats it as a 'YYYY-MM-DD' string.
+ * This approach is timezone-safe because it constructs the date string from the local date
+ * components provided by the browser (`getFullYear`, `getMonth`, `getDate`), rather than relying on
+ * string formatting methods like `toISOString()` which are based on UTC.
+ */
+const getTodayDateString = (): string => {
   const today = new Date();
-  today.setHours(0, 0, 0, 0); // Normalize to start of day
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, '0');
   const day = String(today.getDate()).padStart(2, '0');
@@ -20,13 +26,34 @@ const getTodayDateString = () => {
 };
 
 const MedicationCard: React.FC<MedicationCardProps> = ({ medication, onUpdate, onDelete, onEdit, onShowHistory }) => {
-  const { name, totalTablets, tabletsPerDay, dosesTaken, id, reminders } = medication;
+  const { name, totalTablets, dosesPerDay, tabletsPerDose, dosesTaken, id, reminders } = medication;
+  const [isButtonPressed, setIsButtonPressed] = useState(false);
 
   const today = getTodayDateString();
   const dosesTakenToday = dosesTaken[today] || 0;
+  const currentTabletsPerDose = tabletsPerDose || 1;
+
+  const tabletsRemaining = useMemo(() => {
+    const totalDosesTaken = Object.values(dosesTaken).reduce((sum: number, count: number) => sum + count, 0);
+    const totalTabletsTaken = totalDosesTaken * currentTabletsPerDose;
+    return totalTablets - totalTabletsTaken;
+  }, [dosesTaken, totalTablets, currentTabletsPerDose]);
+
+  const percentageCompleted = useMemo(() => {
+    if (totalTablets <= 0) return 0;
+    const tabletsTaken = totalTablets - tabletsRemaining;
+    const percentage = (tabletsTaken / totalTablets) * 100;
+    return Math.max(0, Math.min(100, percentage));
+  }, [tabletsRemaining, totalTablets]);
+
+  const isCompleted = tabletsRemaining <= 0;
+  const canTakeToday = dosesTakenToday < dosesPerDay && !isCompleted;
 
   const handleTakeDose = () => {
-    if (dosesTakenToday < tabletsPerDay && tabletsRemaining > 0) {
+    if (canTakeToday) {
+      setIsButtonPressed(true);
+      setTimeout(() => setIsButtonPressed(false), 200); // Duration of the button-press animation
+
       const newDosesTaken = {
         ...dosesTaken,
         [today]: (dosesTaken[today] || 0) + 1,
@@ -35,36 +62,39 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, onUpdate, o
     }
   };
 
-  const { tabletsRemaining } = useMemo(() => {
-    const totalDosesTaken = Object.values(dosesTaken).reduce((sum, count) => sum + count, 0);
-    const remainingTabs = totalTablets - totalDosesTaken;
-    
-    return {
-      tabletsRemaining: remainingTabs,
-    };
-  }, [dosesTaken, totalTablets]);
-
   const daysRemaining = useMemo(() => {
     if (tabletsRemaining <= 0) return 0;
+
     const dosesTakenTodayCount = dosesTaken[today] || 0;
-    const dosesLeftForToday = tabletsPerDay - dosesTakenTodayCount;
-    if (tabletsRemaining <= dosesLeftForToday) {
-        return 1;
+    const dosesLeftForToday = dosesPerDay - dosesTakenTodayCount;
+    
+    const tabletsNeededForToday = dosesLeftForToday > 0 ? dosesLeftForToday * currentTabletsPerDose : 0;
+    
+    if (tabletsRemaining <= tabletsNeededForToday) {
+      return 1;
     }
-    const tabletsAfterToday = tabletsRemaining - dosesLeftForToday;
-    return 1 + Math.ceil(tabletsAfterToday / tabletsPerDay);
-  }, [tabletsRemaining, tabletsPerDay, dosesTaken, today]);
+
+    const remainingTabletsAfterToday = tabletsRemaining - tabletsNeededForToday;
+    const tabletsPerFullDay = dosesPerDay * currentTabletsPerDose;
+
+    if (tabletsPerFullDay <= 0) return Infinity;
+
+    return 1 + Math.ceil(remainingTabletsAfterToday / tabletsPerFullDay);
+  }, [tabletsRemaining, dosesPerDay, currentTabletsPerDose, dosesTaken, today]);
 
   
-  const isCompleted = tabletsRemaining <= 0;
-  const canTakeToday = dosesTakenToday < tabletsPerDay && !isCompleted;
-
   const formatTime = (time: string) => {
     const [hour, minute] = time.split(':');
     const date = new Date();
     date.setHours(parseInt(hour, 10));
     date.setMinutes(parseInt(minute, 10));
     return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
+
+  const handleDelete = () => {
+    if (window.confirm(`Are you sure you want to permanently delete "${name}"?`)) {
+      onDelete(id);
+    }
   };
 
   const handleShare = async () => {
@@ -84,36 +114,10 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, onUpdate, o
       try {
         await navigator.clipboard.writeText(shareText);
         alert('Progress copied to clipboard!');
-        // FIX: Corrected a syntax error in the try-catch block by adding curly braces.
       } catch (err) {
         alert('Failed to copy progress to clipboard.');
       }
     }
-  };
-
-  const sortedHistory = useMemo(() => {
-    return Object.entries(dosesTaken).sort(([dateA], [dateB]) => {
-        return new Date(dateB).getTime() - new Date(dateA).getTime();
-    });
-  }, [dosesTaken]);
-
-  const recentHistory = sortedHistory.slice(0, 3);
-    
-  const formatHistoryDate = (dateString: string) => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const date = new Date(dateString);
-    // Adjust for timezone offset
-    date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
-
-    if (date.toDateString() === today.toDateString()) {
-        return 'Today';
-    }
-    if (date.toDateString() === yesterday.toDateString()) {
-        return 'Yesterday';
-    }
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   };
 
   const renderReminderInfo = () => {
@@ -121,7 +125,7 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, onUpdate, o
       return null;
     }
 
-    if (dosesTakenToday >= tabletsPerDay) {
+    if (dosesTakenToday >= dosesPerDay) {
       return (
         <div className="mt-2 flex items-center gap-2 text-sm text-brand-gray-600 dark:text-brand-gray-400">
           <BellIcon className="w-5 h-5 flex-shrink-0 text-brand-success-DEFAULT" />
@@ -184,7 +188,7 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, onUpdate, o
                     <EditIcon className="w-5 h-5"/>
                 </button>
                 <button 
-                    onClick={() => onDelete(id)}
+                    onClick={handleDelete}
                     className="p-1.5 rounded-full text-brand-gray-400 dark:text-brand-gray-500 hover:bg-red-50 dark:hover:bg-red-900/50 hover:text-red-600 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500"
                     aria-label={`Delete ${name}`}
                 >
@@ -195,47 +199,31 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, onUpdate, o
         
         {renderReminderInfo()}
 
-        <div className="grid grid-cols-3 gap-x-4 my-6 py-4 text-center border-t border-b border-brand-gray-100 dark:border-brand-gray-700">
-            <div className="space-y-1">
-                <CalendarIcon className="w-6 h-6 mx-auto text-brand-gold" />
-                <p className="font-bold text-2xl text-brand-gray-800 dark:text-brand-gray-100">{daysRemaining}</p>
-                <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400">Days Left</p>
+        <div className="mt-6 py-4 border-t border-b border-brand-gray-100 dark:border-brand-gray-700">
+            <div className="flex items-center gap-x-3">
+              <div className="flex-grow">
+                <ProgressBar percentage={percentageCompleted} />
+              </div>
+              <span className="font-bold text-sm text-brand-gold-dark dark:text-brand-gold-light whitespace-nowrap">
+                {Math.round(percentageCompleted)}%
+              </span>
             </div>
-            <div className="space-y-1">
-                <PillIcon className="w-6 h-6 mx-auto text-brand-success-DEFAULT" />
-                <p className="font-bold text-2xl text-brand-gray-800 dark:text-brand-gray-100">{tabletsRemaining}</p>
-                <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400">Tablets Left</p>
-            </div>
-            <div className="space-y-1">
-                <ClockIcon className="w-6 h-6 mx-auto text-brand-gold-dark" />
-                <p className="font-bold text-2xl text-brand-gray-800 dark:text-brand-gray-100">
-                    {dosesTakenToday}<span className="text-brand-gray-400 dark:text-brand-gray-500 text-lg">/{tabletsPerDay}</span>
-                </p>
-                <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400">Doses Today</p>
+
+            <div className="grid grid-cols-2 gap-x-4 text-center mt-4">
+                <div className="space-y-1">
+                    <CalendarIcon className="w-5 h-5 mx-auto text-brand-gold-DEFAULT dark:text-brand-gold-light" />
+                    <p className="font-bold text-xl text-brand-gray-800 dark:text-brand-gray-100">{daysRemaining}</p>
+                    <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400">Days Left</p>
+                </div>
+                <div className="space-y-1">
+                    <PillIcon className="w-5 h-5 mx-auto text-brand-gold-DEFAULT dark:text-brand-gold-light" />
+                    <p className="font-bold text-xl text-brand-gray-800 dark:text-brand-gray-100">
+                        {tabletsRemaining}
+                    </p>
+                    <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400">Tablets Left</p>
+                </div>
             </div>
         </div>
-        
-        {sortedHistory.length > 0 && (
-            <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-brand-gray-600 dark:text-brand-gray-400">Recent History</h4>
-                <ul className="space-y-1.5 text-sm">
-                {recentHistory.map(([date, count]) => (
-                    <li key={date} className="flex justify-between items-center text-brand-gray-500 dark:text-brand-gray-400">
-                    <span>{formatHistoryDate(date)}</span>
-                    <span className="font-medium text-brand-gray-700 dark:text-brand-gray-300">{count} {count > 1 ? 'doses' : 'dose'}</span>
-                    </li>
-                ))}
-                </ul>
-                {sortedHistory.length > 3 && (
-                <button 
-                    onClick={() => onShowHistory(medication)} 
-                    className="text-sm font-medium text-center w-full mt-2 text-brand-gold-DEFAULT hover:text-brand-gold-dark dark:hover:text-brand-gold-light focus:outline-none focus:underline"
-                >
-                    View full history
-                </button>
-                )}
-            </div>
-        )}
 
       </div>
 
@@ -249,15 +237,15 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, onUpdate, o
                 <button
                 onClick={handleTakeDose}
                 disabled={!canTakeToday}
-                className={`w-full max-w-xs inline-flex items-center justify-center gap-2 px-4 py-3 border-2 text-base font-medium rounded-lg shadow-md transition-all duration-200 
+                className={`w-full max-w-xs inline-flex items-center justify-center gap-2 px-4 py-3 border-2 text-base font-medium rounded-lg shadow-md transition-transform 
                     ${!canTakeToday 
                     ? 'border-transparent bg-brand-gray-300 text-white dark:bg-brand-gray-600 cursor-not-allowed' 
-                    : 'bg-brand-gold-dark text-white border-transparent hover:bg-brand-success-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-dark'
+                    : `bg-brand-gold-dark text-white border-transparent hover:bg-brand-success-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-dark ${isButtonPressed ? 'animate-button-press' : ''}`
                     }`}
                 >
                   <PillIcon className="w-5 h-5" />
                   <span>
-                    Take Dose <span className="font-bold">({dosesTakenToday}/{tabletsPerDay})</span>
+                    Take Dose <span className="font-bold">({dosesTakenToday}/{dosesPerDay})</span>
                   </span>
                 </button>
                 {!canTakeToday && tabletsRemaining > 0 && <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400 mt-2">You've taken all doses for today.</p>}

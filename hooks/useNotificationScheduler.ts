@@ -1,7 +1,13 @@
 import { useEffect } from 'react';
 import { Medication } from '../types';
 
-const getTodayDateString = () => {
+/**
+ * Gets the current date in the user's local timezone and formats it as a 'YYYY-MM-DD' string.
+ * This approach is timezone-safe because it constructs the date string from the local date
+ * components provided by the browser (`getFullYear`, `getMonth`, `getDate`), rather than relying on
+ * string formatting methods like `toISOString()` which are based on UTC.
+ */
+const getTodayDateString = (): string => {
   const today = new Date();
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -21,11 +27,12 @@ export const useNotificationScheduler = (medications: Medication[]) => {
       const today = getTodayDateString();
 
       medications.forEach(med => {
-        const totalTaken = Object.values(med.dosesTaken).reduce((sum, count) => sum + count, 0);
-        const isCompleted = med.totalTablets - totalTaken <= 0;
+        const totalDosesTaken = Object.values(med.dosesTaken).reduce((sum, count) => sum + count, 0);
+        const tabletsTaken = totalDosesTaken * (med.tabletsPerDose || 1);
+        const isCompleted = med.totalTablets - tabletsTaken <= 0;
         const dosesTakenToday = med.dosesTaken[today] || 0;
 
-        if (!isCompleted && med.reminders?.includes(currentTime) && dosesTakenToday < med.tabletsPerDay) {
+        if (!isCompleted && med.reminders?.includes(currentTime) && dosesTakenToday < med.dosesPerDay) {
           new Notification('Medication Reminder', {
             body: `It's time to take your ${med.name}.`,
             icon: '/favicon.svg',
