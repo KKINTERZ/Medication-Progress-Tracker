@@ -3,7 +3,7 @@ import { Medication, UserProfile } from './types';
 import useLocalStorage from './hooks/useLocalStorage';
 import AddMedicationForm from './components/AddMedicationForm';
 import MedicationList from './components/MedicationList';
-import { PillIcon, PlusIcon, SunIcon, MoonIcon } from './components/Icons';
+import { PillIcon, PlusIcon, SunIcon, MoonIcon, MenuIcon } from './components/Icons';
 import { useNotificationScheduler } from './hooks/useNotificationScheduler';
 import MedicationHistoryModal from './components/MedicationHistoryModal';
 import { useTheme } from './hooks/useTheme';
@@ -11,6 +11,7 @@ import { jwtDecode } from 'jwt-decode';
 import UserProfileDisplay from './components/UserProfile';
 import RealTimeClock from './components/RealTimeClock';
 import { GOOGLE_CLIENT_ID } from './config';
+import SlidingMenu from './components/SlidingMenu';
 
 // FIX: Replaced the incomplete global type for 'google' with a more specific one
 // to resolve TypeScript errors. This definition makes the 'google' object and its
@@ -26,6 +27,7 @@ declare global {
           client_id: string;
           callback: (response: CredentialResponse) => void;
           auto_select?: boolean;
+          use_fedcm_for_prompt?: boolean; // Added this optional property
         }): void;
         renderButton(
           parent: HTMLElement,
@@ -64,6 +66,8 @@ function App() {
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
   const [historyMedication, setHistoryMedication] = useState<Medication | null>(null);
   const { theme, toggleTheme } = useTheme();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAutoLoggingEnabled, setIsAutoLoggingEnabled] = useLocalStorage<boolean>('autoLoggingEnabled', false, userProfile?.id);
 
   // Request notification permission on mount
   useEffect(() => {
@@ -89,6 +93,7 @@ function App() {
         client_id: GOOGLE_CLIENT_ID,
         callback: handleLoginSuccess,
         auto_select: true,
+        use_fedcm_for_prompt: false, // FIX: Disable FedCM to prevent NotAllowedError
       });
 
       // Show the One Tap prompt for returning users if not logged in
@@ -103,9 +108,17 @@ function App() {
   const handleLogout = () => {
     setUserProfile(null);
   };
+  
+  const handleAutoLogDose = (medicationId: string, newDosesTaken: Record<string, number>) => {
+    setMedications(meds =>
+      meds.map(med =>
+        med.id === medicationId ? { ...med, dosesTaken: newDosesTaken } : med
+      )
+    );
+  };
 
   // Run the notification scheduler
-  useNotificationScheduler(medications);
+  useNotificationScheduler(medications, handleAutoLogDose, isAutoLoggingEnabled);
 
   const uniqueMedicationNames = useMemo(() => {
     return [...new Set(medications.map(med => med.name.trim()).filter(Boolean))].sort();
@@ -161,19 +174,37 @@ function App() {
 
   return (
     <div className="min-h-screen bg-brand-gold-50 dark:bg-brand-gray-900 text-brand-gray-800 dark:text-brand-gray-200 font-sans transition-colors duration-300">
+      <SlidingMenu
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        isAutoLoggingEnabled={isAutoLoggingEnabled}
+        onAutoLoggingToggle={setIsAutoLoggingEnabled}
+      />
       <header className="bg-white dark:bg-brand-gray-800 shadow-sm dark:shadow-none dark:border-b dark:border-brand-gray-700 sticky top-0 z-20">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center relative">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+          {/* Left Section */}
           <div className="flex items-center space-x-3">
-            <PillIcon className="h-8 w-8 text-brand-gold-dark" />
-            <h1 className="text-2xl font-bold text-brand-gray-900 dark:text-brand-gray-100 tracking-tight hidden sm:block">
-              Medication Tracker
-            </h1>
+             <button
+              onClick={() => setIsMenuOpen(true)}
+              className="p-2 rounded-full text-brand-gray-500 dark:text-brand-gray-400 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-brand-gray-800 focus:ring-brand-gold-DEFAULT"
+              aria-label="Open menu"
+            >
+              <MenuIcon className="h-6 w-6" />
+            </button>
+            <PillIcon className="h-8 w-8 text-brand-gold-dark hidden sm:block" />
           </div>
-          
-          <div className="absolute left-1/2 -translate-x-1/2">
-            <RealTimeClock />
+
+          {/* Center Section (Responsive) */}
+          <div className="flex-1 min-w-0 px-2 text-center">
+             <h1 className="text-xl font-bold text-brand-gray-900 dark:text-brand-gray-100 tracking-tight truncate sm:hidden">
+                Medication Tracker
+              </h1>
+             <div className="hidden sm:block">
+              <RealTimeClock />
+            </div>
           </div>
-          
+
+          {/* Right Section */}
           <div className="flex items-center space-x-2 sm:space-x-4">
             <button
               onClick={toggleTheme}
@@ -186,7 +217,6 @@ function App() {
               user={userProfile}
               onLogin={handleLoginSuccess}
               onLogout={handleLogout}
-              theme={theme}
             />
           </div>
         </div>

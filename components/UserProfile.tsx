@@ -6,25 +6,29 @@ interface UserProfileDisplayProps {
     user: UserProfile | null;
     onLogin: (response: google.CredentialResponse) => void;
     onLogout: () => void;
-    theme: 'light' | 'dark';
 }
 
-const UserProfileDisplay: React.FC<UserProfileDisplayProps> = ({ user, onLogin, onLogout, theme }) => {
+const UserProfileDisplay: React.FC<UserProfileDisplayProps> = ({ user, onLogin, onLogout }) => {
     const googleButtonRef = useRef<HTMLDivElement>(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [theme, setTheme] = useState<'light' | 'dark'>('light'); // Local state for button theme
 
     useEffect(() => {
+        // Set theme based on document class for button rendering
+        const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+        setTheme(currentTheme);
+
         // Render the button if the user is not logged in and the container is empty.
         // Assumes google.accounts.id.initialize has already been called in the App component.
         if (!user && googleButtonRef.current && !googleButtonRef.current.hasChildNodes()) {
             if (window.google?.accounts?.id) {
                 window.google.accounts.id.renderButton(
                     googleButtonRef.current,
-                    { theme: theme === 'light' ? 'outline' : 'filled_black', size: 'medium', type: 'standard', text: 'signin_with' }
+                    { theme: currentTheme === 'light' ? 'outline' : 'filled_black', size: 'medium', type: 'standard', text: 'signin_with' }
                 );
             }
         }
-    }, [user, onLogin, theme]);
+    }, [user, onLogin]);
 
     if (!user) {
         return <div ref={googleButtonRef} />;
