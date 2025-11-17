@@ -1,5 +1,7 @@
 {
   "name": "Medication Progress Tracker",
   "description": "An intuitive application to help you track your daily medication intake. Add your prescriptions, log your doses, and visually monitor your progress with remaining tablet counts and days left on your course.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "camera"
+  ]
 }

@@ -13,6 +13,7 @@ import RealTimeClock from './components/RealTimeClock';
 import { GOOGLE_CLIENT_ID } from './config';
 import SlidingMenu from './components/SlidingMenu';
 import Logo from './components/Logo';
+import PrescriptionScanner from './components/PrescriptionScanner';
 
 // FIX: Replaced the incomplete global type for 'google' with a more specific one
 // to resolve TypeScript errors. This definition makes the 'google' object and its
@@ -34,7 +35,9 @@ declare global {
           parent: HTMLElement,
           options: {
             theme?: 'outline' | 'filled_black';
-            size?: 'medium';
+            // FIX: Expanded the 'size' property to include all valid options ('large', 'medium', 'small')
+            // to match the Google Identity Services API and resolve the type error.
+            size?: 'large' | 'medium' | 'small';
             type?: 'standard';
             text?: 'signin_with';
             [key: string]: unknown;
@@ -50,10 +53,17 @@ declare global {
   }
 }
 
+type ScannedMedicationData = {
+  name: string;
+  totalTablets: number;
+  dosesPerDay: number;
+  tabletsPerDose: number;
+};
+
 const LoginPrompt: React.FC = () => (
   <div className="text-center py-20 px-6 bg-white dark:bg-brand-gray-800 rounded-lg shadow-md border border-brand-gray-200 dark:border-brand-gray-700">
     <Logo className="mx-auto h-20 w-20 opacity-30 dark:opacity-50"/>
-    <h3 className="mt-4 text-xl font-semibold text-brand-gray-800 dark:text-brand-gray-100">Welcome to Medication Tracker</h3>
+    <h3 className="mt-4 text-xl font-semibold text-brand-gray-800 dark:text-brand-gray-100">Welcome to Medication Progress Tracker by KK Interz from DMW</h3>
     <p className="mt-2 text-brand-gray-500 dark:text-brand-gray-400">
       Please sign in with your Google account to continue.
     </p>
@@ -70,6 +80,8 @@ function App() {
   const { theme, toggleTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAutoLoggingEnabled, setIsAutoLoggingEnabled] = useLocalStorage<boolean>('autoLoggingEnabled', false, userProfile?.id);
+  const [isScannerVisible, setIsScannerVisible] = useState(false);
+  const [prefilledData, setPrefilledData] = useState<ScannedMedicationData | null>(null);
 
   // Request notification permission on mount
   useEffect(() => {
@@ -95,7 +107,7 @@ function App() {
         client_id: GOOGLE_CLIENT_ID,
         callback: handleLoginSuccess,
         auto_select: true,
-        use_fedcm_for_prompt: true, 
+        use_fedcm_for_prompt: false, 
       });
 
       // If the user is not logged in, show prompts and buttons.
@@ -143,17 +155,20 @@ function App() {
 
   const handleAddNewClick = () => {
     setEditingMedication(null);
+    setPrefilledData(null);
     setIsFormVisible(true);
   };
   
   const handleEditClick = (med: Medication) => {
     setEditingMedication(med);
+    setPrefilledData(null);
     setIsFormVisible(true);
   };
 
   const handleCancelForm = () => {
     setIsFormVisible(false);
     setEditingMedication(null);
+    setPrefilledData(null);
   };
 
   const handleSaveMedication = (data: Omit<Medication, 'id' | 'startDate' | 'dosesTaken'>, id?: string) => {
@@ -188,6 +203,18 @@ function App() {
   const handleCloseHistory = () => {
     setHistoryMedication(null);
   };
+  
+  const handleOpenScanner = () => {
+    setIsMenuOpen(false); // Close menu
+    setIsScannerVisible(true);
+  };
+
+  const handleScanComplete = (data: ScannedMedicationData) => {
+    setPrefilledData(data);
+    setEditingMedication(null);
+    setIsScannerVisible(false);
+    setIsFormVisible(true);
+  };
 
   return (
     <div className="min-h-screen bg-brand-gold-50 dark:bg-brand-gray-900 text-brand-gray-800 dark:text-brand-gray-200 font-sans transition-colors duration-300">
@@ -196,6 +223,9 @@ function App() {
         onClose={() => setIsMenuOpen(false)}
         isAutoLoggingEnabled={isAutoLoggingEnabled}
         onAutoLoggingToggle={setIsAutoLoggingEnabled}
+        user={userProfile}
+        onLogout={handleLogout}
+        onOpenScanner={handleOpenScanner}
       />
       <header className="bg-white dark:bg-brand-gray-800 shadow-sm dark:shadow-none dark:border-b dark:border-brand-gray-700 sticky top-0 z-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
@@ -252,6 +282,7 @@ function App() {
                     onCancel={handleCancelForm}
                     medicationToEdit={editingMedication}
                     medicationNames={uniqueMedicationNames}
+                    initialData={prefilledData}
                   />
                 </div>
               </div>
@@ -264,6 +295,13 @@ function App() {
               />
             )}
             
+            {isScannerVisible && (
+                <PrescriptionScanner
+                    onClose={() => setIsScannerVisible(false)}
+                    onScanComplete={handleScanComplete}
+                />
+            )}
+
             <MedicationList
               medications={medications}
               onDeleteMedication={deleteMedication}

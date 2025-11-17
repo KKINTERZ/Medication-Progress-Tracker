@@ -5,6 +5,15 @@
     <link rel="icon" type="image/png" href="https://iili.io/f9QJocF.png"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Medication Progress Tracker</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#FFFBEB" />
+    <link rel="apple-touch-icon" href="https://iili.io/f9QJocF.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="MedTracker" />
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -44,11 +53,16 @@
               'button-press': {
                 '0%, 100%': { transform: 'scale(1)' },
                 '50%': { transform: 'scale(0.95)' },
+              },
+              spin: {
+                'from': { transform: 'rotate(0deg)' },
+                'to': { transform: 'rotate(360deg)' },
               }
             },
             animation: {
               pop: 'pop 0.5s ease-out',
               'button-press': 'button-press 0.2s ease-out',
+              spin: 'spin 1s linear infinite',
             }
           },
         },
@@ -61,7 +75,8 @@
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "jwt-decode": "https://aistudiocdn.com/jwt-decode@^4.0.0"
+    "jwt-decode": "https://aistudiocdn.com/jwt-decode@^4.0.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai-sdk@^0.20.0"
   }
 }
 </script>

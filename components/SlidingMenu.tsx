@@ -1,15 +1,42 @@
-import React from 'react';
-import { XIcon, ScanIcon, SparklesIcon } from './Icons';
+import React, { useEffect } from 'react';
+import { XIcon, ScanIcon, SparklesIcon, LogoutIcon, SwitchAccountIcon } from './Icons';
 import Logo from './Logo';
+import { UserProfile } from '../types';
+import { useTheme } from '../hooks/useTheme';
 
 interface SlidingMenuProps {
   isOpen: boolean;
   onClose: () => void;
   isAutoLoggingEnabled: boolean;
   onAutoLoggingToggle: (enabled: boolean) => void;
+  user: UserProfile | null;
+  onLogout: () => void;
+  onOpenScanner: () => void;
 }
 
-const SlidingMenu: React.FC<SlidingMenuProps> = ({ isOpen, onClose, isAutoLoggingEnabled, onAutoLoggingToggle }) => {
+const SlidingMenu: React.FC<SlidingMenuProps> = ({ isOpen, onClose, isAutoLoggingEnabled, onAutoLoggingToggle, user, onLogout, onOpenScanner }) => {
+  const { theme } = useTheme();
+
+  useEffect(() => {
+    // Only try to render if the menu is open, the user is not logged in, and the GSI client is available.
+    if (isOpen && !user && window.google?.accounts?.id) {
+      const googleButtonContainer = document.getElementById('google-signin-button-menu-container');
+      if (googleButtonContainer) {
+        // Clear container to prevent duplicate buttons on re-render, especially for theme changes.
+        googleButtonContainer.innerHTML = '';
+        window.google.accounts.id.renderButton(
+          googleButtonContainer,
+          { theme: theme === 'light' ? 'outline' : 'filled_black', size: 'large', type: 'standard', text: 'signin_with', width: '280' }
+        );
+      }
+    }
+  }, [isOpen, user, theme]);
+
+  const handleLogoutAndClose = () => {
+    onLogout();
+    onClose();
+  };
+  
   return (
     <>
       <div 
@@ -63,16 +90,48 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({ isOpen, onClose, isAutoLoggin
               </div>
             </div>
 
-            <a href="#" className="flex items-center justify-between p-3 rounded-lg text-brand-gray-400 cursor-not-allowed">
+            <a href="#" onClick={(e) => { e.preventDefault(); onOpenScanner(); }} className="flex items-center justify-between p-3 rounded-lg hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 transition-colors group">
               <div className="flex items-center gap-x-3">
-                <ScanIcon className="w-6 h-6" />
-                <span className="font-semibold">AI Prescription Scanner</span>
+                <ScanIcon className="w-6 h-6 text-brand-gold-DEFAULT group-hover:text-brand-gold-dark dark:group-hover:text-brand-gold-light transition-colors" />
+                <span className="font-semibold text-brand-gray-800 dark:text-brand-gray-200">AI Prescription Scanner</span>
               </div>
-              <span className="text-xs font-bold uppercase bg-brand-gold-light text-brand-gold-dark px-2 py-1 rounded-full">
-                Coming Soon
-              </span>
             </a>
           </nav>
+
+          <div className="p-4 border-t border-brand-gray-200 dark:border-brand-gray-700">
+            {user ? (
+              <div>
+                <div className="flex items-center gap-x-3">
+                  <img src={user.picture} alt={user.name} className="w-10 h-10 rounded-full" />
+                  <div className="min-w-0">
+                    <p className="font-semibold text-brand-gray-800 dark:text-brand-gray-200 truncate">{user.name}</p>
+                    <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400 truncate">{user.email}</p>
+                  </div>
+                </div>
+                <div className="mt-4 space-y-1">
+                  <button
+                    onClick={handleLogoutAndClose}
+                    className="w-full text-left px-3 py-2 text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 flex items-center gap-x-3 rounded-md transition-colors"
+                  >
+                    <SwitchAccountIcon className="w-5 h-5" />
+                    <span>Switch Account</span>
+                  </button>
+                  <button
+                    onClick={handleLogoutAndClose}
+                    className="w-full text-left px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 flex items-center gap-x-3 rounded-md transition-colors"
+                  >
+                    <LogoutIcon className="w-5 h-5" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-sm text-center text-brand-gray-600 dark:text-brand-gray-400 mb-4">Sign in to sync your medications.</p>
+                <div id="google-signin-button-menu-container" className="flex justify-center"></div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>

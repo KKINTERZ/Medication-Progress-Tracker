@@ -8,9 +8,10 @@ interface AddMedicationFormProps {
   onCancel: () => void;
   medicationToEdit?: Medication | null;
   medicationNames: string[];
+  initialData?: { name: string; totalTablets: number; dosesPerDay: number; tabletsPerDose: number; } | null;
 }
 
-const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel, medicationToEdit, medicationNames }) => {
+const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel, medicationToEdit, medicationNames, initialData }) => {
   const [name, setName] = useState('');
   const [totalTablets, setTotalTablets] = useState('');
   const [dosesPerDay, setDosesPerDay] = useState('');
@@ -30,8 +31,16 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
       const hasReminders = medicationToEdit.reminders && medicationToEdit.reminders.length > 0;
       setRemindersEnabled(hasReminders);
       setReminderTimes(hasReminders ? [...medicationToEdit.reminders!].sort() : ['09:00']);
+    } else if (initialData) {
+      setName(initialData.name || '');
+      setTotalTablets(String(initialData.totalTablets || ''));
+      setDosesPerDay(String(initialData.dosesPerDay || ''));
+      setTabletsPerDose(String(initialData.tabletsPerDose || '1'));
+      // Don't enable reminders by default for scanned items
+      setRemindersEnabled(false);
+      setReminderTimes(['09:00']);
     }
-  }, [medicationToEdit]);
+  }, [medicationToEdit, initialData]);
 
   const handleAddReminder = () => {
     setReminderTimes(times => [...times, '17:00'].sort());
