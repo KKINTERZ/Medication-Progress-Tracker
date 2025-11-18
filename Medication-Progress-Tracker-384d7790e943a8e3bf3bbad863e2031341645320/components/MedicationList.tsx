@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Medication } from '../types';
 import MedicationCard from './MedicationCard';

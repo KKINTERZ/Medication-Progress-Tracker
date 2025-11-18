@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-," />
     <link rel="icon" type="image/png" href="https://iili.io/f9QJocF.png"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Medication Progress Tracker</title>
@@ -57,41 +57,31 @@
               spin: {
                 'from': { transform: 'rotate(0deg)' },
                 'to': { transform: 'rotate(360deg)' },
-              },
-              'gradient-shift': {
-                '0%': { backgroundPosition: '0% 50%' },
-                '50%': { backgroundPosition: '100% 50%' },
-                '100%': { backgroundPosition: '0% 50%' },
               }
             },
             animation: {
               pop: 'pop 0.5s ease-out',
               'button-press': 'button-press 0.2s ease-out',
               spin: 'spin 1s linear infinite',
-              'gradient-shift': 'gradient-shift 8s ease infinite',
             }
           },
         },
       }
     </script>
-    <script type="importmap">
+    <script src="https://accounts.google.com/gsi/client" async></script>
+  <script type="importmap">
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "path": "https://aistudiocdn.com/path@^0.12.7",
-    "vite": "https://aistudiocdn.com/vite@^7.2.2",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
-    "url": "https://aistudiocdn.com/url@^0.11.4",
-    "jwt-decode": "https://aistudiocdn.com/jwt-decode@^4.0.0"
+    "jwt-decode": "https://aistudiocdn.com/jwt-decode@^4.0.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai-sdk@^0.20.0"
   }
 }
 </script>
-  </head>
+</head>
   <body>
     <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
   </body>
 </html>

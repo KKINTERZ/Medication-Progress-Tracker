@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Medication } from '../types';
-import { PlusIcon, XIcon, BellIcon, EditIcon, SparklesIcon, SpinnerIcon } from './Icons';
-import { GoogleGenAI, Type } from '@google/genai';
+// FIX: Removed 'PillIcon' from import as it is not exported from './Icons'.
+import { PlusIcon, XIcon, BellIcon, EditIcon } from './Icons';
 
 interface AddMedicationFormProps {
   onSave: (data: Omit<Medication, 'id' | 'startDate' | 'dosesTaken'>, id?: string) => void;
@@ -20,7 +19,6 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [reminderTimes, setReminderTimes] = useState<string[]>(['09:00']);
   const [error, setError] = useState('');
-  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const isEditMode = !!medicationToEdit;
 
@@ -61,60 +59,6 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
   const sortReminders = () => {
     setReminderTimes(times => [...times].sort());
   }
-
-  const handleSmartFill = async () => {
-    if (!name.trim()) {
-      setError('Please enter a medication name first.');
-      return;
-    }
-    
-    setIsAiLoading(true);
-    setError('');
-
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
-      
-      const prompt = `I have a medication named '${name}'. 
-      Provide a standard estimation for:
-      1. 'dosesPerDay': Typical frequency (times per day).
-      2. 'tabletsPerDose': Typical dosage (number of tablets/pills per dose).
-      3. 'duration': Standard course duration in days for an acute condition (e.g. antibiotics) or 30 days for chronic/maintenance.
-      
-      Calculate 'totalTablets' as (dosesPerDay * tabletsPerDose * duration).
-      Return ONLY valid JSON.`;
-
-      const schema = {
-        type: Type.OBJECT,
-        properties: {
-            totalTablets: { type: Type.NUMBER, description: "Calculated total count of tablets" },
-            dosesPerDay: { type: Type.NUMBER, description: "Recommended doses per day" },
-            tabletsPerDose: { type: Type.NUMBER, description: "Recommended tablets per dose" },
-        },
-        required: ["totalTablets", "dosesPerDay", "tabletsPerDose"]
-      };
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: schema,
-        },
-      });
-      
-      const result = JSON.parse(response.text!);
-      
-      setTotalTablets(String(result.totalTablets || ''));
-      setDosesPerDay(String(result.dosesPerDay || ''));
-      setTabletsPerDose(String(result.tabletsPerDose || '1'));
-      
-    } catch (e) {
-      console.error("Smart fill failed", e);
-      setError("Could not auto-fill details. Please enter them manually.");
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,35 +109,22 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
           <label htmlFor="name" className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300">
             Medication Name
           </label>
-          <div className="mt-1 flex rounded-md shadow-sm">
-            <div className="relative flex-grow focus-within:z-10">
-              <input
-                type="text"
-                id="name"
-                list="medication-names"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="appearance-none block w-full px-3 py-2 border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 rounded-l-md placeholder-brand-gray-400 dark:placeholder-brand-gray-500 focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT sm:text-sm"
-                placeholder="e.g., Vitamin D"
-              />
-              <datalist id="medication-names">
-                {medicationNames.map((medName) => (
-                  <option key={medName} value={medName} />
-                ))}
-              </datalist>
-            </div>
-            <button
-              type="button"
-              onClick={handleSmartFill}
-              disabled={isAiLoading || !name.trim()}
-              className="-ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-brand-gray-300 dark:border-brand-gray-600 text-sm font-medium rounded-r-md text-brand-gold-dark dark:text-brand-gold-light bg-brand-gray-50 dark:bg-brand-gray-600 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-500 focus:outline-none focus:ring-1 focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Auto-fill details with AI"
-            >
-              {isAiLoading ? <SpinnerIcon className="h-5 w-5 animate-spin" /> : <SparklesIcon className="h-5 w-5" />}
-              <span className="hidden sm:inline">Auto-Fill</span>
-            </button>
+          <div className="mt-1">
+            <input
+              type="text"
+              id="name"
+              list="medication-names"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="appearance-none block w-full px-3 py-2 border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 rounded-md shadow-sm placeholder-brand-gray-400 dark:placeholder-brand-gray-500 focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT sm:text-sm"
+              placeholder="e.g., Vitamin D"
+            />
+            <datalist id="medication-names">
+              {medicationNames.map((medName) => (
+                <option key={medName} value={medName} />
+              ))}
+            </datalist>
           </div>
-          <p className="mt-1 text-xs text-brand-gray-500">Type a name and click Auto-Fill to get AI suggestions.</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-6">

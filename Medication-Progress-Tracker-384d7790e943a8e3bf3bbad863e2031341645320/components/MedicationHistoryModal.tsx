@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Medication } from '../types';
 import { XIcon, CalendarIcon } from './Icons';
@@ -51,6 +50,7 @@ const MedicationHistoryModal: React.FC<MedicationHistoryModalProps> = ({ medicat
         <div className="p-6 overflow-y-auto max-h-[60vh]">
           {sortedDoses.length > 0 ? (
             <ul className="space-y-4">
+              {/* FIX: Explicitly type the destructured map arguments to ensure `count` is a number. */}
               {sortedDoses.map(([date, count]: [string, number]) => (
                 <li key={date} className="flex items-center justify-between p-4 bg-brand-gold-light dark:bg-brand-gray-700/50 rounded-lg border border-brand-gray-200 dark:border-brand-gray-700">
                   <div className="flex items-center space-x-3">

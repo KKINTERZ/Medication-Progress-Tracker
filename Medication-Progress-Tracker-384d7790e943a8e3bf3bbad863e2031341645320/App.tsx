@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Medication, UserProfile } from './types';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -214,8 +213,6 @@ function App() {
           onLogout={handleLogout}
           onOpenScanner={handleOpenScanner}
           onOpenAnalyser={handleOpenAnalyser}
-          onLoginClick={handleOpenLogin}
-          onSignupClick={handleOpenSignup}
         />
       )}
 

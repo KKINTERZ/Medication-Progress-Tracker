@@ -1,127 +1,147 @@
 import React, { useState } from 'react';
-import useLocalStorage from '../hooks/useLocalStorage';
-import { UserProfile } from '../types';
-import { XIcon } from './Icons';
+import { XIcon, SpinnerIcon } from './Icons';
+import Logo from './Logo';
 
 interface AuthModalProps {
-  mode: 'login' | 'signup';
+  isOpen: boolean;
   onClose: () => void;
-  onAuthSuccess: (user: UserProfile) => void;
+  onLogin: (email: string, name?: string) => Promise<void>;
+  initialMode?: 'login' | 'signup';
 }
 
-type StoredUser = UserProfile & { passwordHash: string };
-
-const AuthModal: React.FC<AuthModalProps> = ({ mode, onClose, onAuthSuccess }) => {
-  const [currentMode, setCurrentMode] = useState(mode);
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, initialMode = 'login' }) => {
+  const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
-  const [users, setUsers] = useLocalStorage<StoredUser[]>('users_db', []);
 
-  const title = currentMode === 'login' ? 'Log In' : 'Create Account';
-  const buttonText = currentMode === 'login' ? 'Log In' : 'Sign Up';
-  const switchText = currentMode === 'login' ? "Don't have an account?" : 'Already have an account?';
-  const switchActionText = currentMode === 'login' ? 'Sign Up' : 'Log In';
+  if (!isOpen) return null;
 
-  const switchMode = () => {
-    setCurrentMode(currentMode === 'login' ? 'signup' : 'login');
-    setError('');
-    setEmail('');
-    setPassword('');
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('Email and password cannot be empty.');
-      return;
-    }
     setError('');
     setIsLoading(true);
 
-    // Simulate async operation
-    setTimeout(() => {
-      if (currentMode === 'signup') {
-        const existingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-        if (existingUser) {
-          setError('An account with this email already exists.');
-          setIsLoading(false);
-          return;
-        }
-        const newUser: StoredUser = {
-          id: crypto.randomUUID(),
-          email: email.toLowerCase(),
-          name: email.split('@')[0], // Default name from email
-          passwordHash: password, // In a real app, hash this password!
-        };
-        setUsers(prevUsers => [...prevUsers, newUser]);
-        const { passwordHash, ...userProfile } = newUser;
-        onAuthSuccess(userProfile);
-      } else { // Login mode
-        const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-        if (user && user.passwordHash === password) { // In a real app, compare hashes!
-          const { passwordHash, ...userProfile } = user;
-          onAuthSuccess(userProfile);
-        } else {
-          setError('Invalid email or password.');
-          setIsLoading(false);
-        }
+    try {
+      // Basic validation
+      if (!email || !password) {
+        throw new Error('Please fill in all fields');
       }
-    }, 500);
+      if (password.length < 6) {
+        throw new Error('Password must be at least 6 characters');
+      }
+      if (mode === 'signup' && !name) {
+        throw new Error('Please enter your name');
+      }
+
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // In a real app, this is where you'd call your backend API
+      // For this demo, we'll simulate a successful login/signup
+      await onLogin(email, mode === 'signup' ? name : undefined);
+      
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="w-full max-w-sm bg-white dark:bg-brand-gray-800 rounded-xl shadow-2xl animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-5 border-b border-brand-gray-200 dark:border-brand-gray-700">
-          <h2 className="text-xl font-bold text-brand-gray-900 dark:text-brand-gray-100">{title}</h2>
-          <button onClick={onClose} className="p-1 rounded-full text-brand-gray-400 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700" aria-label="Close">
-            <XIcon className="w-6 h-6" />
-          </button>
-        </div>
+    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 animate-fade-in-up">
+      <div className="bg-white dark:bg-brand-gray-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1 rounded-full text-brand-gray-400 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 focus:outline-none"
+        >
+          <XIcon className="w-6 h-6" />
+        </button>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300">Email Address</label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT"
-              required
-            />
+        <div className="p-8">
+          <div className="text-center mb-6">
+            <Logo className="h-12 w-12 mx-auto mb-3" />
+            <h2 className="text-2xl font-bold text-brand-gray-900 dark:text-brand-gray-100">
+              {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+            </h2>
+            <p className="text-brand-gray-500 dark:text-brand-gray-400 text-sm mt-1">
+              {mode === 'login' ? 'Sign in to continue tracking' : 'Start your journey to better health'}
+            </p>
           </div>
-          <div>
-            <label htmlFor="password"className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300">Password</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-brand-gold-DEFAULT focus:border-brand-gold-DEFAULT"
-              required
-            />
-          </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === 'signup' && (
+              <div>
+                <label className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 focus:ring-2 focus:ring-brand-gold-DEFAULT focus:border-transparent outline-none transition-all"
+                  placeholder="John Doe"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300 mb-1">Email Address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 focus:ring-2 focus:ring-brand-gold-DEFAULT focus:border-transparent outline-none transition-all"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300 mb-1">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 focus:ring-2 focus:ring-brand-gold-DEFAULT focus:border-transparent outline-none transition-all"
+                placeholder="••••••••"
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm p-3 rounded-lg text-center">
+                {error}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-gold-dark hover:bg-brand-success-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-dark disabled:bg-brand-gray-400"
+              className="w-full bg-brand-gold-dark hover:bg-brand-success-dark text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-brand-gold-dark/30"
             >
-              {isLoading ? 'Processing...' : buttonText}
+              {isLoading ? (
+                <>
+                  <SpinnerIcon className="w-5 h-5 animate-spin" />
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <span>{mode === 'login' ? 'Sign In' : 'Create Account'}</span>
+              )}
             </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-brand-gray-500 dark:text-brand-gray-400">
+              {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
+              <button
+                onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+                className="text-brand-gold-dark dark:text-brand-gold-DEFAULT font-semibold hover:underline focus:outline-none"
+              >
+                {mode === 'login' ? 'Sign Up' : 'Log In'}
+              </button>
+            </p>
           </div>
-          <p className="text-sm text-center text-brand-gray-500 dark:text-brand-gray-400">
-            {switchText}{' '}
-            <button type="button" onClick={switchMode} className="font-medium text-brand-gold-dark dark:text-brand-gold-light hover:underline">
-              {switchActionText}
-            </button>
-          </p>
-        </form>
+        </div>
       </div>
     </div>
   );
