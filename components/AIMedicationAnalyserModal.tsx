@@ -29,11 +29,19 @@ const AIMedicationAnalyserModal: React.FC<AIMedicationAnalyserModalProps> = ({ m
         const medicationList = medications.map(m => `${m.name} (${m.dosesPerDay} times/day)`).join(', ');
         
         const prompt = `Analyze the following list of medications for a patient: ${medicationList}. 
-        1. Briefly explain what each medication is commonly used for.
-        2. Identify potential interactions between them (if any).
-        3. Provide general advice for taking these medications (e.g., with food, time of day).
-        Keep the tone helpful, professional, and easy to understand. 
-        Disclaimer: Start by stating this is AI-generated advice and not a substitute for professional medical consultation.`;
+        
+        Please provide:
+        1. MEDICATION USES: Briefly explain what each medication is commonly used for.
+        2. POTENTIAL INTERACTIONS: Identify potential interactions between them (if any).
+        3. GENERAL ADVICE: Provide general advice for taking these medications (e.g., with food, time of day).
+
+        STRICT FORMATTING RULES:
+        - Do NOT use markdown characters like *, **, or ###.
+        - Do NOT use bullet points.
+        - Write all section headings in UPPERCASE letters.
+        - Output purely plain text.
+        
+        Start by stating this is AI-generated advice and not a substitute for professional medical consultation.`;
 
         const response = await ai.models.generateContent({
           model: 'gemini-2.5-flash',
@@ -87,7 +95,7 @@ const AIMedicationAnalyserModal: React.FC<AIMedicationAnalyserModalProps> = ({ m
             </div>
           ) : (
             <div className="prose dark:prose-invert max-w-none">
-              <div className="whitespace-pre-wrap text-brand-gray-700 dark:text-brand-gray-300 leading-relaxed">
+              <div className="whitespace-pre-wrap text-brand-gray-700 dark:text-brand-gray-300 leading-relaxed font-sans">
                 {analysis}
               </div>
             </div>
@@ -96,7 +104,7 @@ const AIMedicationAnalyserModal: React.FC<AIMedicationAnalyserModalProps> = ({ m
 
         <div className="p-4 border-t border-brand-gray-200 dark:border-brand-gray-700 bg-brand-gray-50 dark:bg-brand-gray-800/50 rounded-b-xl">
             <p className="text-xs text-center text-brand-gray-500 dark:text-brand-gray-400 italic">
-                Powered by Google Gemini. Always consult a doctor before changing your medication routine.
+                AI can make mistakes sometimes but our model is usually accurate
             </p>
         </div>
       </div>
