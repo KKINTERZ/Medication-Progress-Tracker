@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, Type } from '@google/genai';
-import { XIcon, ScanIcon, SpinnerIcon, SparklesIcon } from './Icons';
+import { XIcon, ScanIcon, SpinnerIcon, SparklesIcon, UploadIcon } from './Icons';
 
 interface PrescriptionScannerProps {
   onClose: () => void;
@@ -11,10 +11,15 @@ interface PrescriptionScannerProps {
 const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({ onClose, onScanComplete }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const getCamera = async () => {
@@ -31,7 +36,10 @@ const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({ onClose, onSc
         }
       } catch (err) {
         console.error("Error accessing camera:", err);
-        setError("Could not access the camera. Please check your browser permissions.");
+        // Only set error if we don't have a file selected
+        if (!selectedFile) {
+             setError("Could not access the camera. Please check your browser permissions.");
+        }
       }
     };
 
@@ -42,6 +50,32 @@ const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({ onClose, onSc
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+        setSelectedFile(file);
+        setPreviewUrl(URL.createObjectURL(file));
+        setError(null); // Clear any camera errors since we have a file
+    }
+  };
+
+  const handleClearFile = () => {
+      setSelectedFile(null);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      // If camera permission failed previously, we might show error again, 
+      // or ideally we try to restart camera, but simplistic approach is fine:
+      // If camera stream exists, it will just show. 
+      // If it failed initially, the error message will be visible again if we didn't clear it in state completely.
+      // But we cleared it. So if stream is null, user will see just blank or spinner.
+      // Let's re-check permissions if needed, but mostly stream is kept alive in background.
+  };
+
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
+  };
 
   const blobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -58,31 +92,33 @@ const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({ onClose, onSc
     });
   };
 
-  const handleCapture = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
+  const handleAnalyze = async () => {
     setIsLoading(true);
     setError(null);
+    
+    try {
+        let blob: Blob | null = null;
 
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const context = canvas.getContext('2d');
-    if (!context) {
-        setError("Could not get canvas context.");
-        setIsLoading(false);
-        return;
-    }
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        if (selectedFile) {
+            blob = selectedFile;
+        } else {
+            if (!videoRef.current || !canvasRef.current) {
+                throw new Error("Camera not ready");
+            }
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            if (!context) throw new Error("Could not get canvas context");
+            
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+        }
 
-    canvas.toBlob(async (blob) => {
-      if (!blob) {
-        setError("Failed to capture image from video.");
-        setIsLoading(false);
-        return;
-      }
+        if (!blob) throw new Error("Failed to get image data");
 
-      try {
         const base64Image = await blobToBase64(blob);
         
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
@@ -133,7 +169,6 @@ const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({ onClose, onSc
       } finally {
         setIsLoading(false);
       }
-    }, 'image/jpeg', 0.9);
   };
 
   return (
@@ -150,43 +185,80 @@ const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({ onClose, onSc
           </button>
         </div>
 
-        {/* Camera View */}
+        {/* Camera View / Image Preview */}
         <div className="relative aspect-video bg-black">
-          <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-11/12 h-3/4 border-4 border-dashed border-white/50 rounded-lg" />
-          </div>
-          {!cameraReady && !error && (
-            <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-white">
-              <SpinnerIcon className="w-8 h-8 animate-spin mr-3"/>
-              Starting camera...
-            </div>
-          )}
+            {previewUrl ? (
+                 <img src={previewUrl} className="w-full h-full object-contain" alt="Preview" />
+            ) : (
+                <>
+                    <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-11/12 h-3/4 border-4 border-dashed border-white/50 rounded-lg" />
+                    </div>
+                    {!cameraReady && !error && (
+                        <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-white">
+                        <SpinnerIcon className="w-8 h-8 animate-spin mr-3"/>
+                        Starting camera...
+                        </div>
+                    )}
+                </>
+            )}
         </div>
 
         {/* Footer & Controls */}
         <div className="p-4 bg-brand-gray-800/50">
           {error && <p className="text-sm text-red-400 text-center mb-3">{error}</p>}
-          <p className="text-sm text-brand-gray-400 text-center mb-4">Position the medication label inside the frame and capture.</p>
-          <button
-            onClick={handleCapture}
-            disabled={isLoading || !cameraReady}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-brand-gold-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-dark transition-all duration-300 transform hover:scale-105 disabled:bg-brand-gray-600 disabled:scale-100 disabled:cursor-not-allowed"
-          >
-            {isLoading ? (
-              <>
-                <SpinnerIcon className="w-5 h-5 animate-spin"/>
-                <span>Analyzing...</span>
-              </>
-            ) : (
-              <>
-                <ScanIcon className="h-6 w-6" />
-                <span>Capture & Analyze</span>
-              </>
-            )}
-          </button>
+          <p className="text-sm text-brand-gray-400 text-center mb-4">
+              {selectedFile ? "Review the image and analyze." : "Position the medication label inside the frame and capture."}
+          </p>
+          
+          <div className="grid grid-cols-2 gap-4">
+             {selectedFile ? (
+                 <button
+                    onClick={handleClearFile}
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-brand-gray-600 text-base font-medium rounded-lg shadow-sm text-brand-gray-300 hover:bg-brand-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gray-600 transition-all"
+                 >
+                    Retake Photo
+                 </button>
+             ) : (
+                 <button
+                    onClick={triggerFileUpload}
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-brand-gray-600 text-base font-medium rounded-lg shadow-sm text-brand-gray-300 hover:bg-brand-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gray-600 transition-all"
+                 >
+                    <UploadIcon className="w-5 h-5" />
+                    Upload
+                 </button>
+             )}
+
+            <button
+                onClick={handleAnalyze}
+                disabled={isLoading || (!cameraReady && !selectedFile)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-brand-gold-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-dark transition-all duration-300 transform hover:scale-105 disabled:bg-brand-gray-600 disabled:scale-100 disabled:cursor-not-allowed"
+            >
+                {isLoading ? (
+                <>
+                    <SpinnerIcon className="w-5 h-5 animate-spin"/>
+                    <span>Analyzing...</span>
+                </>
+                ) : (
+                <>
+                    {selectedFile ? <SparklesIcon className="w-5 h-5"/> : <ScanIcon className="w-5 h-5" />}
+                    <span>{selectedFile ? "Analyze" : "Capture"}</span>
+                </>
+                )}
+            </button>
+          </div>
         </div>
         <canvas ref={canvasRef} className="hidden" />
+        <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            accept="image/*" 
+            onChange={handleFileChange} 
+        />
       </div>
     </div>
   );

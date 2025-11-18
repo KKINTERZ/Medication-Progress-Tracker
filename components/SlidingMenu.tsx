@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { XIcon, ScanIcon, SparklesIcon, LogoutIcon, SwitchAccountIcon, LightBulbIcon, UserIcon } from './Icons';
 import Logo from './Logo';
@@ -8,16 +9,14 @@ interface SlidingMenuProps {
   onClose: () => void;
   isAutoLoggingEnabled: boolean;
   onAutoLoggingToggle: (enabled: boolean) => void;
-  user: UserProfile | null;
+  user: UserProfile;
   onLogout: () => void;
   onOpenScanner: () => void;
   onOpenAnalyser: () => void;
-  onLoginClick: () => void;
-  onSignupClick: () => void;
 }
 
 const SlidingMenu: React.FC<SlidingMenuProps> = ({ 
-  isOpen, onClose, isAutoLoggingEnabled, onAutoLoggingToggle, user, onLogout, onOpenScanner, onOpenAnalyser, onLoginClick, onSignupClick 
+  isOpen, onClose, isAutoLoggingEnabled, onAutoLoggingToggle, user, onLogout, onOpenScanner, onOpenAnalyser 
 }) => {
   
   const handleLogoutAndClose = () => {
@@ -43,7 +42,7 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({
             <div className="flex items-center gap-x-2">
               <Logo className="w-6 h-6" />
               <h2 id="menu-title" className="text-lg font-bold text-brand-gray-900 dark:text-brand-gray-100">
-                Menu
+                Explore More from MPT
               </h2>
             </div>
             <button 
@@ -94,57 +93,37 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({
           </nav>
 
           <div className="p-4 border-t border-brand-gray-200 dark:border-brand-gray-700">
-            {user ? (
-              <div>
-                <div className="flex items-center gap-x-3">
-                   {user.picture ? (
-                      <img src={user.picture} alt={user.name} className="w-10 h-10 rounded-full" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-brand-gold-light dark:bg-brand-gray-700 flex items-center justify-center border border-brand-gold-DEFAULT/30">
-                          <UserIcon className="w-6 h-6 text-brand-gold-dark dark:text-brand-gold-light" />
-                      </div>
-                    )}
-                  <div className="min-w-0">
-                    <p className="font-semibold text-brand-gray-800 dark:text-brand-gray-200 truncate">{user.name}</p>
-                    <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400 truncate">{user.email}</p>
-                  </div>
-                </div>
-                <div className="mt-4 space-y-1">
-                  <button
-                    onClick={handleLogoutAndClose}
-                    className="w-full text-left px-3 py-2 text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 flex items-center gap-x-3 rounded-md transition-colors"
-                  >
-                    <SwitchAccountIcon className="w-5 h-5" />
-                    <span>Switch Account</span>
-                  </button>
-                  <button
-                    onClick={handleLogoutAndClose}
-                    className="w-full text-left px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 flex items-center gap-x-3 rounded-md transition-colors"
-                  >
-                    <LogoutIcon className="w-5 h-5" />
-                    <span>Sign Out</span>
-                  </button>
+            <div>
+              <div className="flex items-center gap-x-3">
+                  {user.picture ? (
+                    <img src={user.picture} alt={user.name} className="w-10 h-10 rounded-full" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-brand-gold-light dark:bg-brand-gray-700 flex items-center justify-center border border-brand-gold-DEFAULT/30">
+                        <UserIcon className="w-6 h-6 text-brand-gold-dark dark:text-brand-gold-light" />
+                    </div>
+                  )}
+                <div className="min-w-0">
+                  <p className="font-semibold text-brand-gray-800 dark:text-brand-gray-200 truncate">{user.name}</p>
+                  <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400 truncate">{user.email}</p>
                 </div>
               </div>
-            ) : (
-              <div>
-                <p className="text-sm text-center text-brand-gray-600 dark:text-brand-gray-400 mb-4">Sign in to sync your medications.</p>
-                 <div className="space-y-3">
-                    <button
-                        onClick={() => { onClose(); onLoginClick(); }}
-                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-gold-dark hover:bg-brand-success-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-DEFAULT"
-                    >
-                        Log In
-                    </button>
-                    <button
-                        onClick={() => { onClose(); onSignupClick(); }}
-                        className="w-full flex justify-center py-2 px-4 border border-brand-gray-300 dark:border-brand-gray-600 rounded-md shadow-sm text-sm font-medium text-brand-gray-700 dark:text-brand-gray-200 bg-white dark:bg-brand-gray-700 hover:bg-brand-gray-50 dark:hover:bg-brand-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-DEFAULT"
-                    >
-                        Create Account
-                    </button>
-                 </div>
+              <div className="mt-4 space-y-1">
+                <button
+                  onClick={handleLogoutAndClose}
+                  className="w-full text-left px-3 py-2 text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 flex items-center gap-x-3 rounded-md transition-colors"
+                >
+                  <SwitchAccountIcon className="w-5 h-5" />
+                  <span>Switch Account</span>
+                </button>
+                <button
+                  onClick={handleLogoutAndClose}
+                  className="w-full text-left px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 flex items-center gap-x-3 rounded-md transition-colors"
+                >
+                  <LogoutIcon className="w-5 h-5" />
+                  <span>Sign Out</span>
+                </button>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

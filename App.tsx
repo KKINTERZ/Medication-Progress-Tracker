@@ -258,8 +258,6 @@ function App() {
           onLogout={handleLogout}
           onOpenScanner={handleOpenScanner}
           onOpenAnalyser={handleOpenAnalyser}
-          onLoginClick={handleOpenLogin}
-          onSignupClick={handleOpenSignup}
         />
       )}
 
