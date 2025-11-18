@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">Medication Tracker</string>
+
+    <!--
+      Digital Asset Links JSON. This proves your ownership of the website.
+      - Replace "com.kkinterz.medicationtracker" with your applicationId from build.gradle.
+      - Replace the placeholder SHA-256 fingerprint with the one from your release signing key.
+      You can generate it using the command:
+      keytool -list -v -keystore [path-to-your-keystore.jks] -alias [your-alias]
+    -->
+    <string name="asset_statements">
+        [{
+            "relation": ["delegate_permission/common.handle_all_urls"],
+            "target": {
+                "namespace": "android_app",
+                "package_name": "com.kkinterz.medicationtracker",
+                "sha256_cert_fingerprints": [
+                    "00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF"
+                ]
+            }
+        }]
+    </string>
+</resources>

@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Medication, UserProfile } from './types';
 import useLocalStorage from './hooks/useLocalStorage';
 import AddMedicationForm from './components/AddMedicationForm';
 import MedicationList from './components/MedicationList';
-import { PlusIcon, SunIcon, MoonIcon, MenuIcon } from './components/Icons';
+import { PlusIcon, SunIcon, MoonIcon, MenuIcon, SpinnerIcon } from './components/Icons';
 import { useNotificationScheduler } from './hooks/useNotificationScheduler';
 import MedicationHistoryModal from './components/MedicationHistoryModal';
 import { useTheme } from './hooks/useTheme';
@@ -14,6 +14,7 @@ import { GOOGLE_CLIENT_ID } from './config';
 import SlidingMenu from './components/SlidingMenu';
 import Logo from './components/Logo';
 import PrescriptionScanner from './components/PrescriptionScanner';
+import { upsertUserAndGetMeds, saveMedicationsForUser } from './server/api';
 
 // FIX: Replaced the incomplete global type for 'google' with a more specific one
 // to resolve TypeScript errors. This definition makes the 'google' object and its
@@ -73,7 +74,8 @@ const LoginPrompt: React.FC = () => (
 
 function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [medications, setMedications] = useLocalStorage<Medication[]>('medications', [], userProfile?.id);
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
   const [historyMedication, setHistoryMedication] = useState<Medication | null>(null);
@@ -82,6 +84,7 @@ function App() {
   const [isAutoLoggingEnabled, setIsAutoLoggingEnabled] = useLocalStorage<boolean>('autoLoggingEnabled', false, userProfile?.id);
   const [isScannerVisible, setIsScannerVisible] = useState(false);
   const [prefilledData, setPrefilledData] = useState<ScannedMedicationData | null>(null);
+  const isInitialLoad = useRef(true);
 
   // Request notification permission on mount
   useEffect(() => {
@@ -90,7 +93,8 @@ function App() {
     }
   }, []);
   
-  const handleLoginSuccess = (credentialResponse: google.CredentialResponse) => {
+  const handleLoginSuccess = async (credentialResponse: google.CredentialResponse) => {
+    setIsLoading(true);
     const decoded: { sub: string, name: string, email: string, picture: string } = jwtDecode(credentialResponse.credential);
     const profile: UserProfile = {
         id: decoded.sub,
@@ -98,7 +102,13 @@ function App() {
         email: decoded.email,
         picture: decoded.picture
     };
-    setUserProfile(profile);
+    
+    const { user, medications: savedMedications } = await upsertUserAndGetMeds(profile);
+    
+    setUserProfile(user);
+    setMedications(savedMedications);
+    isInitialLoad.current = true; // Flag to prevent saving on initial load
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -136,7 +146,21 @@ function App() {
         window.google.accounts.id.disableAutoSelect();
     }
     setUserProfile(null);
+    setMedications([]);
   };
+
+  // Effect to save medications to the backend whenever they change for a logged-in user.
+  useEffect(() => {
+    // Prevent saving on the initial data load after login.
+    if (isInitialLoad.current) {
+        isInitialLoad.current = false;
+        return;
+    }
+    
+    if (userProfile?.id) {
+        saveMedicationsForUser(userProfile.id, medications);
+    }
+  }, [medications, userProfile]);
   
   const handleAutoLogDose = (medicationId: string, newDosesTaken: Record<string, number>) => {
     setMedications(meds =>
@@ -272,6 +296,11 @@ function App() {
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         {!userProfile ? (
           <LoginPrompt />
+        ) : isLoading ? (
+            <div className="text-center py-20">
+                <SpinnerIcon className="mx-auto h-12 w-12 animate-spin text-brand-gold-DEFAULT" />
+                <p className="mt-4 text-brand-gray-500 dark:text-brand-gray-400">Loading your medications...</p>
+            </div>
         ) : (
           <>
             {isFormVisible && (

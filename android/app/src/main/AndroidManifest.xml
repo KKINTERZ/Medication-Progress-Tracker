@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.Translucent.NoTitleBar">
+
+        <!-- 
+          This is the main entry point for the TWA. It uses the LauncherActivity from the
+          android-browser-helper library to correctly launch your PWA.
+        -->
+        <activity
+            android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+            android:label="@string/app_name"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            
+            <!-- This intent filter allows the TWA to handle links to your website -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!--
+                  IMPORTANT: Replace "medication-tracker.app" with your actual domain.
+                  This must match the domain in `strings.xml` and the hosted `assetlinks.json` file.
+                -->
+                <data android:scheme="https" android:host="medication-tracker.app"/>
+            </intent-filter>
+
+            <!-- The URL of your PWA to be displayed in the TWA -->
+            <meta-data
+                android:name="com.google.androidbrowserhelper.trusted.DEFAULT_URL"
+                android:value="https://medication-tracker.app" />
+
+            <!-- The color of the status bar -->
+            <meta-data
+                android:name="com.google.androidbrowserhelper.trusted.STATUS_BAR_COLOR"
+                android:resource="@color/colorPrimary" />
+
+            <!-- The color of the navigation bar -->
+            <meta-data
+                android:name="com.google.androidbrowserhelper.trusted.NAVIGATION_BAR_COLOR"
+                android:resource="@color/colorPrimary" />
+
+        </activity>
+
+        <!--
+          This is required for Digital Asset Links verification. The content is defined in `strings.xml`.
+          It links your app to your website, proving ownership and allowing the browser UI (like the address bar) to be hidden.
+        -->
+        <meta-data
+            android:name="asset_statements"
+            android:resource="@string/asset_statements" />
+    </application>
+
+</manifest>

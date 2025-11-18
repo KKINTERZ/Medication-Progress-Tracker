@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 
+      This color is used for the status bar in the TWA. 
+      It should match your web app's theme-color.
+      Current value is 'brand-gold-50': #FFFBEB
+    -->
+    <color name="colorPrimary">#FFFBEB</color>
+</resources>
