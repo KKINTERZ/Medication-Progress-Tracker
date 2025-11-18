@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Medication, UserProfile } from './types';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -159,6 +160,12 @@ function App() {
     setIsAuthModalOpen(false);
   };
 
+  const handleResetPassword = async (email: string) => {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log(`Password reset request for: ${email}`);
+  };
+
   const handleLogout = () => {
     setUserProfile(null);
   };
@@ -266,6 +273,7 @@ function App() {
         onClose={() => setIsAuthModalOpen(false)}
         onLogin={handleAuth}
         onGoogleLogin={handleGoogleLogin}
+        onResetPassword={handleResetPassword}
         initialMode={authMode}
       />
 
