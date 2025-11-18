@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Medication, UserProfile } from './types';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -26,12 +25,15 @@ type ScannedMedicationData = {
 interface LoginPromptProps {
     onLoginClick: () => void;
     onSignupClick: () => void;
+    onGoogleLoginClick: () => void;
 }
 
-const LoginPrompt: React.FC<LoginPromptProps> = ({ onLoginClick, onSignupClick }) => (
+const LoginPrompt: React.FC<LoginPromptProps> = ({ onLoginClick, onSignupClick, onGoogleLoginClick }) => (
   <div className="text-center py-20 px-6 bg-white dark:bg-brand-gray-800 rounded-lg shadow-md border border-brand-gray-200 dark:border-brand-gray-700 animate-fade-in-up">
     <Logo className="mx-auto h-20 w-20 opacity-30 dark:opacity-50"/>
-    <h3 className="mt-4 text-xl font-semibold text-brand-gray-800 dark:text-brand-gray-100">Welcome to Medication Progress Tracker</h3>
+    <h3 className="mt-4 text-xl font-semibold text-brand-gray-800 dark:text-brand-gray-100">
+      Welcome to Medication Progress Tracker by <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600 font-bold italic">KK Interz</span> from <span className="font-mono font-bold tracking-widest text-brand-gray-700 dark:text-brand-gray-300">DMW</span>
+    </h3>
     <p className="mt-2 text-brand-gray-500 dark:text-brand-gray-400">
       Please sign in or create an account to continue.
     </p>
@@ -48,6 +50,34 @@ const LoginPrompt: React.FC<LoginPromptProps> = ({ onLoginClick, onSignupClick }
         >
             Create Account
         </button>
+    </div>
+    
+    <div className="mt-8 max-w-md mx-auto">
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-brand-gray-200 dark:border-brand-gray-700"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-2 bg-white dark:bg-brand-gray-800 text-brand-gray-500 dark:text-brand-gray-400">Or continue with</span>
+        </div>
+      </div>
+
+      <div className="mt-6 flex justify-center">
+          <button
+            onClick={onGoogleLoginClick}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-3 border border-brand-gray-300 dark:border-brand-gray-600 rounded-full shadow-sm bg-white dark:bg-brand-gray-700 text-brand-gray-700 dark:text-brand-gray-200 hover:bg-brand-gray-50 dark:hover:bg-brand-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-DEFAULT transition-all transform hover:scale-105"
+          >
+            <img 
+                src="https://iili.io/fduVidb.png" 
+                alt="Google" 
+                className="w-5 h-5"
+                onError={(e) => {
+                    e.currentTarget.src = "https://www.svgrepo.com/show/475656/google-color.svg";
+                }}
+            />
+            <span className="font-medium">Sign in with Google</span>
+          </button>
+      </div>
     </div>
   </div>
 );
@@ -113,6 +143,20 @@ function App() {
         setUserProfile(user);
       }
       setIsAuthModalOpen(false);
+  };
+
+  const handleGoogleLogin = async () => {
+    // Simulate a brief network delay for realism
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const googleUser: UserProfile = {
+        id: 'google-' + crypto.randomUUID(),
+        name: 'Google User',
+        email: 'google.user@example.com',
+        picture: 'https://lh3.googleusercontent.com/a/ACg8ocIq8dDBwpP1FfJ6q5sW8X1_9j7k2b4w5y8z7x9A=s96-c', // Standard Google generic avatar
+    };
+    setUserProfile(googleUser);
+    setIsAuthModalOpen(false);
   };
 
   const handleLogout = () => {
@@ -223,6 +267,7 @@ function App() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onLogin={handleAuth}
+        onGoogleLogin={handleGoogleLogin}
         initialMode={authMode}
       />
 
@@ -271,7 +316,11 @@ function App() {
 
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         {!userProfile ? (
-          <LoginPrompt onLoginClick={handleOpenLogin} onSignupClick={handleOpenSignup} />
+          <LoginPrompt 
+            onLoginClick={handleOpenLogin} 
+            onSignupClick={handleOpenSignup} 
+            onGoogleLoginClick={handleGoogleLogin}
+          />
         ) : (
           <>
             {isFormVisible && (

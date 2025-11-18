@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { XIcon, SpinnerIcon } from './Icons';
 import Logo from './Logo';
@@ -6,10 +7,11 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLogin: (email: string, name?: string) => Promise<void>;
+  onGoogleLogin: () => void;
   initialMode?: 'login' | 'signup';
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, initialMode = 'login' }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onGoogleLogin, initialMode = 'login' }) => {
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -129,6 +131,33 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, initial
               )}
             </button>
           </form>
+
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white dark:bg-brand-gray-800 text-brand-gray-500 dark:text-brand-gray-400">Or continue with</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => { onGoogleLogin(); onClose(); }}
+              className="mt-4 w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-brand-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-brand-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-gold-DEFAULT"
+            >
+              <img 
+                src="https://iili.io/fduVidb.png" 
+                alt="Google" 
+                className="w-5 h-5" 
+                onError={(e) => {
+                    e.currentTarget.src = "https://www.svgrepo.com/show/475656/google-color.svg";
+                }}
+              />
+              <span className="font-medium">Sign in with Google</span>
+            </button>
+          </div>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-brand-gray-500 dark:text-brand-gray-400">
