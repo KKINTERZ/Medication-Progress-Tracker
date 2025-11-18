@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Medication } from '../types';
-import { CalendarIcon, TrashIcon, BellIcon, EditIcon, HistoryIcon, ShareIcon } from './Icons';
+import { PillIcon, CalendarIcon, TrashIcon, BellIcon, EditIcon, HistoryIcon, ShareIcon } from './Icons';
 import ProgressBar from './ProgressBar';
-import Logo from './Logo';
 
 interface MedicationCardProps {
   medication: Medication;
@@ -29,14 +28,12 @@ const getTodayDateString = (): string => {
 const MedicationCard: React.FC<MedicationCardProps> = ({ medication, onUpdate, onDelete, onEdit, onShowHistory }) => {
   const { name, totalTablets, dosesPerDay, tabletsPerDose, dosesTaken, id, reminders } = medication;
   const [isButtonPressed, setIsButtonPressed] = useState(false);
-  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   const today = getTodayDateString();
   const dosesTakenToday = dosesTaken[today] || 0;
   const currentTabletsPerDose = tabletsPerDose || 1;
 
   const tabletsRemaining = useMemo(() => {
-    // FIX: Add explicit types to the reduce function's parameters (`sum` and `count`) to resolve a TypeScript error. This ensures that the arithmetic operation is performed on numbers.
     const totalDosesTaken = Object.values(dosesTaken).reduce((sum: number, count: number) => sum + count, 0);
     const totalTabletsTaken = totalDosesTaken * currentTabletsPerDose;
     return totalTablets - totalTabletsTaken;
@@ -95,12 +92,9 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, onUpdate, o
   };
 
   const handleDelete = () => {
-    setIsConfirmingDelete(true);
-  };
-  
-  const handleConfirmDelete = () => {
-    onDelete(id);
-    setIsConfirmingDelete(false);
+    if (window.confirm(`Are you sure you want to permanently delete "${name}"?`)) {
+      onDelete(id);
+    }
   };
 
   const handleShare = async () => {
@@ -167,147 +161,98 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, onUpdate, o
   };
 
   return (
-    <>
-      <div className="bg-white dark:bg-brand-gray-800 rounded-xl shadow-lg border border-brand-gray-200 dark:border-brand-gray-700 overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
-        <div className="p-6 flex-grow">
-          <div className="flex justify-between items-start">
-              <h3 className="text-xl font-bold text-brand-gray-800 dark:text-brand-gray-100 pr-2 flex-1">{name}</h3>
-              <div className="flex items-center space-x-1">
-                  <button
-                      onClick={handleShare}
-                      className="p-1.5 rounded-full text-brand-gray-400 dark:text-brand-gray-500 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 hover:text-brand-gray-600 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-gold-DEFAULT"
-                      aria-label={`Share progress for ${name}`}
-                  >
-                      <ShareIcon className="w-5 h-5" />
-                  </button>
-                  <button
-                      onClick={() => onShowHistory(medication)}
-                      className="p-1.5 rounded-full text-brand-gray-400 dark:text-brand-gray-500 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 hover:text-brand-gray-600 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-gold-DEFAULT"
-                      aria-label={`View history for ${name}`}
-                  >
-                      <HistoryIcon className="w-5 h-5" />
-                  </button>
-                  <button 
-                      onClick={() => onEdit(medication)}
-                      className="p-1.5 rounded-full text-brand-gray-400 dark:text-brand-gray-500 hover:bg-amber-50 dark:hover:bg-amber-900/50 hover:text-amber-600 dark:hover:text-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      aria-label={`Edit ${name}`}
-                  >
-                      <EditIcon className="w-5 h-5"/>
-                  </button>
-                  <button 
-                      onClick={handleDelete}
-                      className="p-1.5 rounded-full text-brand-gray-400 dark:text-brand-gray-500 hover:bg-red-50 dark:hover:bg-red-900/50 hover:text-red-600 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500"
-                      aria-label={`Delete ${name}`}
-                  >
-                      <TrashIcon className="w-5 h-5"/>
-                  </button>
-              </div>
-          </div>
-          
-          {renderReminderInfo()}
+    <div className="bg-white dark:bg-brand-gray-800 rounded-xl shadow-lg border border-brand-gray-200 dark:border-brand-gray-700 overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
+      <div className="p-6 flex-grow">
+        <div className="flex justify-between items-start">
+            <h3 className="text-xl font-bold text-brand-gray-800 dark:text-brand-gray-100 pr-2 flex-1">{name}</h3>
+            <div className="flex items-center space-x-1">
+                <button
+                    onClick={handleShare}
+                    className="p-1.5 rounded-full text-brand-gray-400 dark:text-brand-gray-500 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 hover:text-brand-gray-600 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-gold-DEFAULT"
+                    aria-label={`Share progress for ${name}`}
+                >
+                    <ShareIcon className="w-5 h-5" />
+                </button>
+                <button
+                    onClick={() => onShowHistory(medication)}
+                    className="p-1.5 rounded-full text-brand-gray-400 dark:text-brand-gray-500 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 hover:text-brand-gray-600 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-brand-gold-DEFAULT"
+                    aria-label={`View history for ${name}`}
+                >
+                    <HistoryIcon className="w-5 h-5" />
+                </button>
+                <button 
+                    onClick={() => onEdit(medication)}
+                    className="p-1.5 rounded-full text-brand-gray-400 dark:text-brand-gray-500 hover:bg-amber-50 dark:hover:bg-amber-900/50 hover:text-amber-600 dark:hover:text-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    aria-label={`Edit ${name}`}
+                >
+                    <EditIcon className="w-5 h-5"/>
+                </button>
+                <button 
+                    onClick={handleDelete}
+                    className="p-1.5 rounded-full text-brand-gray-400 dark:text-brand-gray-500 hover:bg-red-50 dark:hover:bg-red-900/50 hover:text-red-600 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    aria-label={`Delete ${name}`}
+                >
+                    <TrashIcon className="w-5 h-5"/>
+                </button>
+            </div>
+        </div>
+        
+        {renderReminderInfo()}
 
-          <div className="mt-6 py-4 border-t border-b border-brand-gray-100 dark:border-brand-gray-700">
-              <div className="flex items-center gap-x-3">
-                <div className="flex-grow">
-                  <ProgressBar percentage={percentageCompleted} />
+        <div className="mt-6 py-4 border-t border-b border-brand-gray-100 dark:border-brand-gray-700">
+            <div className="flex items-center gap-x-3">
+              <div className="flex-grow">
+                <ProgressBar percentage={percentageCompleted} />
+              </div>
+              <span className="font-bold text-sm text-brand-gold-dark dark:text-brand-gold-light whitespace-nowrap">
+                {Math.round(percentageCompleted)}%
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-4 text-center mt-4">
+                <div className="space-y-1">
+                    <CalendarIcon className="w-5 h-5 mx-auto text-brand-gold-DEFAULT dark:text-brand-gold-light" />
+                    <p className="font-bold text-xl text-brand-gray-800 dark:text-brand-gray-100">{daysRemaining}</p>
+                    <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400">Days Left</p>
                 </div>
-                <span className="font-bold text-sm text-brand-gold-dark dark:text-brand-gold-light whitespace-nowrap">
-                  {Math.round(percentageCompleted)}%
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-x-4 text-center mt-4">
-                  <div className="space-y-1">
-                      <CalendarIcon className="w-5 h-5 mx-auto text-brand-gold-DEFAULT dark:text-brand-gold-light" />
-                      <p className="font-bold text-xl text-brand-gray-800 dark:text-brand-gray-100">{daysRemaining}</p>
-                      <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400">Days Left</p>
-                  </div>
-                  <div className="space-y-1">
-                      <div className="w-5 h-5 mx-auto flex items-center justify-center">
-                         <Logo className="w-full h-full" />
-                      </div>
-                      <p className="font-bold text-xl text-brand-gray-800 dark:text-brand-gray-100">
-                          {tabletsRemaining}
-                      </p>
-                      <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400">Tablets Left</p>
-                  </div>
-              </div>
-          </div>
-
+                <div className="space-y-1">
+                    <PillIcon className="w-5 h-5 mx-auto text-brand-gold-DEFAULT dark:text-brand-gold-light" />
+                    <p className="font-bold text-xl text-brand-gray-800 dark:text-brand-gray-100">
+                        {tabletsRemaining}
+                    </p>
+                    <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400">Tablets Left</p>
+                </div>
+            </div>
         </div>
 
-        <div className="bg-brand-gold-light dark:bg-brand-gray-800/50 p-4 mt-auto">
-          {isCompleted ? (
-               <div className="text-center font-semibold text-brand-success-dark dark:text-brand-success-light bg-brand-success-light dark:bg-green-500/10 py-3 px-4 rounded-lg">
-                  Course Completed! 🎉
-               </div>
-          ) : (
-              <div className="flex flex-col items-center">
-                  <button
-                  onClick={handleTakeDose}
-                  disabled={!canTakeToday}
-                  className={`w-full max-w-xs inline-flex items-center justify-center gap-2 px-4 py-3 border-2 text-base font-medium rounded-lg shadow-md transition-transform 
-                      ${!canTakeToday 
-                      ? 'border-transparent bg-brand-gray-300 text-white dark:bg-brand-gray-600 cursor-not-allowed' 
-                      : `bg-brand-gold-dark text-white border-transparent hover:bg-brand-success-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-dark ${isButtonPressed ? 'animate-button-press' : ''}`
-                      }`}
-                  >
-                    <Logo className="w-5 h-5" />
-                    <span>
-                      Take Dose <span className="font-bold">({dosesTakenToday}/{dosesPerDay})</span>
-                    </span>
-                  </button>
-                  {!canTakeToday && tabletsRemaining > 0 && <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400 mt-2">You've taken all doses for today.</p>}
-              </div>
-          )}
-        </div>
       </div>
 
-      {isConfirmingDelete && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 transition-opacity"
-          onClick={() => setIsConfirmingDelete(false)}
-          aria-modal="true"
-          role="dialog"
-        >
-          <div
-            className="bg-white dark:bg-brand-gray-800 rounded-xl shadow-2xl w-full max-w-md animate-fade-in-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6 text-center">
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50">
-                    <TrashIcon className="h-6 w-6 text-red-600 dark:text-red-400" aria-hidden="true" />
-                </div>
-                <h3 className="text-lg leading-6 font-bold text-brand-gray-900 dark:text-brand-gray-100 mt-5" id="modal-title">
-                    Delete Medication
-                </h3>
-                <div className="mt-2 px-7">
-                    <p className="text-sm text-brand-gray-500 dark:text-brand-gray-400">
-                        Are you sure you want to permanently delete "{name}"? This action cannot be undone.
-                    </p>
-                </div>
+      <div className="bg-brand-gold-light dark:bg-brand-gray-800/50 p-4 mt-auto">
+        {isCompleted ? (
+             <div className="text-center font-semibold text-brand-success-dark dark:text-brand-success-light bg-brand-success-light dark:bg-green-500/10 py-3 px-4 rounded-lg">
+                Course Completed! 🎉
+             </div>
+        ) : (
+            <div className="flex flex-col items-center">
+                <button
+                onClick={handleTakeDose}
+                disabled={!canTakeToday}
+                className={`w-full max-w-xs inline-flex items-center justify-center gap-2 px-4 py-3 border-2 text-base font-medium rounded-lg shadow-md transition-transform 
+                    ${!canTakeToday 
+                    ? 'border-transparent bg-brand-gray-300 text-white dark:bg-brand-gray-600 cursor-not-allowed' 
+                    : `bg-brand-gold-dark text-white border-transparent hover:bg-brand-success-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-dark ${isButtonPressed ? 'animate-button-press' : ''}`
+                    }`}
+                >
+                  <PillIcon className="w-5 h-5" />
+                  <span>
+                    Take Dose <span className="font-bold">({dosesTakenToday}/{dosesPerDay})</span>
+                  </span>
+                </button>
+                {!canTakeToday && tabletsRemaining > 0 && <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400 mt-2">You've taken all doses for today.</p>}
             </div>
-
-            <div className="bg-brand-gray-50 dark:bg-brand-gray-700/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-xl">
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
-              >
-                Delete
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsConfirmingDelete(false)}
-                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-500 shadow-sm px-4 py-2 bg-white dark:bg-brand-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-brand-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-DEFAULT sm:mt-0 sm:w-auto sm:text-sm"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+        )}
+      </div>
+    </div>
   );
 };
 

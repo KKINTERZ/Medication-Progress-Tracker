@@ -1,90 +1,77 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import { Medication, UserProfile } from './types';
 import useLocalStorage from './hooks/useLocalStorage';
 import AddMedicationForm from './components/AddMedicationForm';
 import MedicationList from './components/MedicationList';
-import { PlusIcon, SunIcon, MoonIcon, MenuIcon, SpinnerIcon } from './components/Icons';
+import { LogoIcon, PlusIcon, MenuIcon, SunIcon, MoonIcon } from './components/Icons';
 import { useNotificationScheduler } from './hooks/useNotificationScheduler';
 import MedicationHistoryModal from './components/MedicationHistoryModal';
 import { useTheme } from './hooks/useTheme';
-import { jwtDecode } from 'jwt-decode';
 import UserProfileDisplay from './components/UserProfile';
-import RealTimeClock from './components/RealTimeClock';
-import { GOOGLE_CLIENT_ID } from './config';
 import SlidingMenu from './components/SlidingMenu';
-import Logo from './components/Logo';
-import PrescriptionScanner from './components/PrescriptionScanner';
-import { upsertUserAndGetMeds, saveMedicationsForUser } from './server/api';
+import AIMedicationAnalyserModal from './components/AIMedicationAnalyserModal';
+import AIPrescriptionReaderModal from './components/AIPrescriptionReaderModal';
+import RealTimeClock from './components/RealTimeClock';
+import AuthModal from './components/AuthModal';
 
-// FIX: Replaced the incomplete global type for 'google' with a more specific one
-// to resolve TypeScript errors. This definition makes the 'google' object and its
-// nested properties and types available globally.
-declare global {
-  namespace google {
-    interface CredentialResponse {
-      credential: string;
-    }
-    const accounts: {
-      id: {
-        initialize(config: {
-          client_id: string;
-          callback: (response: CredentialResponse) => void;
-          auto_select?: boolean;
-          use_fedcm_for_prompt?: boolean; // Added this optional property
-        }): void;
-        renderButton(
-          parent: HTMLElement,
-          options: {
-            theme?: 'outline' | 'filled_black';
-            // FIX: Expanded the 'size' property to include all valid options ('large', 'medium', 'small')
-            // to match the Google Identity Services API and resolve the type error.
-            size?: 'large' | 'medium' | 'small';
-            type?: 'standard';
-            text?: 'signin_with';
-            [key: string]: unknown;
-          }
-        ): void;
-        prompt(notification?: (notification: unknown) => void): void;
-        disableAutoSelect(): void;
-      };
-    };
-  }
-  interface Window {
-    google?: typeof google;
-  }
+type PrefilledMedicationData = Omit<Medication, 'id' | 'startDate' | 'dosesTaken' | 'reminders'> & { reminders?: string[] };
+
+interface WelcomeScreenProps {
+  onLoginClick: () => void;
+  onSignUpClick: () => void;
 }
 
-type ScannedMedicationData = {
-  name: string;
-  totalTablets: number;
-  dosesPerDay: number;
-  tabletsPerDose: number;
-};
-
-const LoginPrompt: React.FC = () => (
+const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onLoginClick, onSignUpClick }) => (
   <div className="text-center py-20 px-6 bg-white dark:bg-brand-gray-800 rounded-lg shadow-md border border-brand-gray-200 dark:border-brand-gray-700">
-    <Logo className="mx-auto h-20 w-20 opacity-30 dark:opacity-50"/>
-    <h3 className="mt-4 text-xl font-semibold text-brand-gray-800 dark:text-brand-gray-100">Welcome to Medication Progress Tracker by KK Interz from DMW</h3>
+    <LogoIcon className="mx-auto h-16 w-16"/>
+    <h3 className="mt-4 text-xl font-semibold text-brand-gray-800 dark:text-brand-gray-100">
+      Welcome to Medication Progress Tracker by{' '}
+      <span className="font-bold italic text-brand-gold-dark dark:text-brand-gold-light">
+        KK Interz
+      </span>{' '}
+      from{' '}
+      <span className="font-bold font-mono text-brand-gray-900 dark:text-brand-gray-50 tracking-widest">
+        DMW
+      </span>
+    </h3>
     <p className="mt-2 text-brand-gray-500 dark:text-brand-gray-400">
-      Please sign in with your Google account to continue.
+      Log in or create an account to track your medications.
     </p>
-    <div id="google-signin-button-container" className="mt-6 flex justify-center"></div>
+    <div className="mt-8 flex justify-center gap-x-4">
+      <button
+        onClick={onLoginClick}
+        className="inline-flex items-center gap-2 px-6 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-brand-gold-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-dark transition-all duration-300 transform hover:scale-105"
+      >
+        Log In
+      </button>
+      <button
+        onClick={onSignUpClick}
+        className="inline-flex items-center gap-2 px-6 py-3 border border-brand-gray-300 dark:border-brand-gray-600 text-base font-medium rounded-full shadow-sm text-brand-gray-700 dark:text-brand-gray-200 bg-white dark:bg-brand-gray-700 hover:bg-brand-gray-50 dark:hover:bg-brand-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-gold-DEFAULT transition-all duration-300 transform hover:scale-105"
+      >
+        Sign Up
+      </button>
+    </div>
   </div>
 );
 
 function App() {
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [medications, setMedications] = useState<Medication[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [userProfile, setUserProfile] = useLocalStorage<UserProfile | null>('userProfile', null);
+  const [medications, setMedications] = useLocalStorage<Medication[]>('medications', [], userProfile?.id);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
   const [historyMedication, setHistoryMedication] = useState<Medication | null>(null);
+  const [prefilledData, setPrefilledData] = useState<PrefilledMedicationData | null>(null);
+  const [authModal, setAuthModal] = useState<{ isOpen: boolean; mode: 'login' | 'signup' }>({ isOpen: false, mode: 'login' });
+
   const { theme, toggleTheme } = useTheme();
+
+  // AI Features State
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAutoLoggingEnabled, setIsAutoLoggingEnabled] = useLocalStorage<boolean>('autoLoggingEnabled', false, userProfile?.id);
-  const [isScannerVisible, setIsScannerVisible] = useState(false);
-  const [prefilledData, setPrefilledData] = useState<ScannedMedicationData | null>(null);
-  const isInitialLoad = useRef(true);
+  const [isAnalyserOpen, setIsAnalyserOpen] = useState(false);
+  const [isReaderOpen, setIsReaderOpen] = useState(false);
+  const [autoDoseLog, setAutoDoseLog] = useLocalStorage('autoDoseLog', false, userProfile?.id);
+
 
   // Request notification permission on mount
   useEffect(() => {
@@ -92,86 +79,18 @@ function App() {
       Notification.requestPermission();
     }
   }, []);
-  
-  const handleLoginSuccess = async (credentialResponse: google.CredentialResponse) => {
-    setIsLoading(true);
-    const decoded: { sub: string, name: string, email: string, picture: string } = jwtDecode(credentialResponse.credential);
-    const profile: UserProfile = {
-        id: decoded.sub,
-        name: decoded.name,
-        email: decoded.email,
-        picture: decoded.picture
-    };
-    
-    const { user, medications: savedMedications } = await upsertUserAndGetMeds(profile);
-    
+
+  const handleAuthSuccess = (user: UserProfile) => {
     setUserProfile(user);
-    setMedications(savedMedications);
-    isInitialLoad.current = true; // Flag to prevent saving on initial load
-    setIsLoading(false);
+    setAuthModal({ isOpen: false, mode: 'login' });
   };
-
-  useEffect(() => {
-    if (window.google?.accounts?.id) {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleLoginSuccess,
-        auto_select: true,
-        use_fedcm_for_prompt: false, 
-      });
-
-      // If the user is not logged in, show prompts and buttons.
-      if (!userProfile) {
-        // Trigger the One Tap prompt for returning users.
-        window.google.accounts.id.prompt();
-        
-        // Also render the manual sign-in button in case One Tap is closed or fails.
-        const googleButtonContainer = document.getElementById('google-signin-button-container');
-        if (googleButtonContainer) {
-            // Clear container to prevent duplicate buttons on re-render
-            googleButtonContainer.innerHTML = ''; 
-            window.google.accounts.id.renderButton(
-                googleButtonContainer,
-                { theme: theme === 'light' ? 'outline' : 'filled_black', size: 'medium', type: 'standard', text: 'signin_with' }
-            );
-        }
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProfile, theme]); // Rerun when user logs out or theme changes
-
-
-  const handleLogout = () => {
-    if (window.google?.accounts?.id) {
-        window.google.accounts.id.disableAutoSelect();
-    }
-    setUserProfile(null);
-    setMedications([]);
-  };
-
-  // Effect to save medications to the backend whenever they change for a logged-in user.
-  useEffect(() => {
-    // Prevent saving on the initial data load after login.
-    if (isInitialLoad.current) {
-        isInitialLoad.current = false;
-        return;
-    }
-    
-    if (userProfile?.id) {
-        saveMedicationsForUser(userProfile.id, medications);
-    }
-  }, [medications, userProfile]);
   
-  const handleAutoLogDose = (medicationId: string, newDosesTaken: Record<string, number>) => {
-    setMedications(meds =>
-      meds.map(med =>
-        med.id === medicationId ? { ...med, dosesTaken: newDosesTaken } : med
-      )
-    );
+  const handleLogout = () => {
+    setUserProfile(null);
   };
 
   // Run the notification scheduler
-  useNotificationScheduler(medications, handleAutoLogDose, isAutoLoggingEnabled);
+  useNotificationScheduler(medications);
 
   const uniqueMedicationNames = useMemo(() => {
     return [...new Set(medications.map(med => med.name.trim()).filter(Boolean))].sort();
@@ -187,6 +106,13 @@ function App() {
     setEditingMedication(med);
     setPrefilledData(null);
     setIsFormVisible(true);
+  };
+  
+  const handleReaderSave = (data: PrefilledMedicationData) => {
+    setPrefilledData(data);
+    setIsReaderOpen(false);
+    setIsFormVisible(true);
+    setEditingMedication(null);
   };
 
   const handleCancelForm = () => {
@@ -227,80 +153,104 @@ function App() {
   const handleCloseHistory = () => {
     setHistoryMedication(null);
   };
-  
-  const handleOpenScanner = () => {
-    setIsMenuOpen(false); // Close menu
-    setIsScannerVisible(true);
-  };
-
-  const handleScanComplete = (data: ScannedMedicationData) => {
-    setPrefilledData(data);
-    setEditingMedication(null);
-    setIsScannerVisible(false);
-    setIsFormVisible(true);
-  };
 
   return (
     <div className="min-h-screen bg-brand-gold-50 dark:bg-brand-gray-900 text-brand-gray-800 dark:text-brand-gray-200 font-sans transition-colors duration-300">
-      <SlidingMenu
-        isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
-        isAutoLoggingEnabled={isAutoLoggingEnabled}
-        onAutoLoggingToggle={setIsAutoLoggingEnabled}
-        user={userProfile}
-        onLogout={handleLogout}
-        onOpenScanner={handleOpenScanner}
-      />
       <header className="bg-white dark:bg-brand-gray-800 shadow-sm dark:shadow-none dark:border-b dark:border-brand-gray-700 sticky top-0 z-20">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-          {/* Left Section */}
-          <div className="flex items-center space-x-3">
-             <button
-              onClick={() => setIsMenuOpen(true)}
-              className="p-2 rounded-full text-brand-gray-500 dark:text-brand-gray-400 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-brand-gray-800 focus:ring-brand-gold-DEFAULT"
-              aria-label="Open menu"
-            >
-              <MenuIcon className="h-6 w-6" />
-            </button>
-            <Logo className="h-8 w-8 hidden sm:block" />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-3 flex-1 basis-0">
+             {userProfile && (
+              <button
+                onClick={() => setIsMenuOpen(true)}
+                className="p-2 rounded-full text-brand-gray-500 dark:text-brand-gray-400 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700"
+                aria-label="Open AI Features Menu"
+              >
+                <MenuIcon className="h-6 w-6" />
+              </button>
+            )}
+            <LogoIcon className="h-8 w-8" />
+            <h1 className="text-2xl font-bold tracking-tight whitespace-nowrap bg-gradient-to-r from-brand-gold via-brand-gold-dark to-brand-gold-light bg-200% animate-gradient-shift bg-clip-text text-transparent">
+              Medication Progress Tracker
+            </h1>
+          </div>
+          
+          <div className="hidden md:flex justify-center flex-shrink-0 mx-4">
+             {userProfile && <RealTimeClock />}
           </div>
 
-          {/* Center Section (Responsive) */}
-          <div className="flex-1 min-w-0 px-2 text-center">
-             <h1 className="text-xl font-bold text-brand-gray-900 dark:text-brand-gray-100 tracking-tight truncate sm:hidden">
-                Medication Tracker
-              </h1>
-             <div className="hidden sm:block">
-              <RealTimeClock />
-            </div>
-          </div>
-
-          {/* Right Section */}
-          <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className="flex items-center space-x-4 flex-1 basis-0 justify-end">
             <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full text-brand-gray-500 dark:text-brand-gray-400 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-brand-gray-800 focus:ring-brand-gold-DEFAULT"
-              aria-label="Toggle theme"
+                onClick={toggleTheme}
+                className="p-2 rounded-full text-brand-gray-500 dark:text-brand-gray-400 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700"
+                aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
             >
-              {theme === 'light' ? <MoonIcon className="h-6 w-6" /> : <SunIcon className="h-6 w-6" />}
+                {theme === 'light' ? (
+                    <MoonIcon key="moon" className="h-6 w-6 animate-theme-icon-spin" />
+                ) : (
+                    <SunIcon key="sun" className="h-6 w-6 animate-theme-icon-spin" />
+                )}
             </button>
-            <UserProfileDisplay
-              user={userProfile}
-              onLogin={handleLoginSuccess}
-              onLogout={handleLogout}
-            />
+            {userProfile ? (
+              <UserProfileDisplay user={userProfile} onLogout={handleLogout} />
+            ) : (
+              <div className="hidden sm:flex items-center space-x-2">
+                <button
+                  onClick={() => setAuthModal({ isOpen: true, mode: 'login' })}
+                  className="px-4 py-2 text-sm font-medium text-brand-gold-dark dark:text-brand-gold-light hover:bg-brand-gold-50 dark:hover:bg-brand-gray-700 rounded-md"
+                >
+                  Log In
+                </button>
+                <button
+                  onClick={() => setAuthModal({ isOpen: true, mode: 'signup' })}
+                  className="px-4 py-2 text-sm font-medium text-white bg-brand-gold-dark hover:bg-brand-success-dark rounded-md shadow-sm"
+                >
+                  Sign Up
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
+        
+      {userProfile && (
+        <>
+            <SlidingMenu 
+                isOpen={isMenuOpen}
+                onClose={() => setIsMenuOpen(false)}
+                isAutoLogEnabled={autoDoseLog}
+                onAutoLogToggle={setAutoDoseLog}
+                onAnalyserOpen={() => setIsAnalyserOpen(true)}
+                onReaderOpen={() => setIsReaderOpen(true)}
+            />
+            {isAnalyserOpen && (
+                <AIMedicationAnalyserModal
+                    medications={medications}
+                    onClose={() => setIsAnalyserOpen(false)}
+                />
+            )}
+            {isReaderOpen && (
+                <AIPrescriptionReaderModal
+                    onClose={() => setIsReaderOpen(false)}
+                    onSave={handleReaderSave}
+                />
+            )}
+        </>
+       )}
+      
+      {authModal.isOpen && (
+        <AuthModal
+          mode={authModal.mode}
+          onClose={() => setAuthModal({ isOpen: false, mode: 'login' })}
+          onAuthSuccess={handleAuthSuccess}
+        />
+      )}
 
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         {!userProfile ? (
-          <LoginPrompt />
-        ) : isLoading ? (
-            <div className="text-center py-20">
-                <SpinnerIcon className="mx-auto h-12 w-12 animate-spin text-brand-gold-DEFAULT" />
-                <p className="mt-4 text-brand-gray-500 dark:text-brand-gray-400">Loading your medications...</p>
-            </div>
+          <WelcomeScreen 
+            onLoginClick={() => setAuthModal({ isOpen: true, mode: 'login' })}
+            onSignUpClick={() => setAuthModal({ isOpen: true, mode: 'signup' })}
+          />
         ) : (
           <>
             {isFormVisible && (
@@ -311,7 +261,7 @@ function App() {
                     onCancel={handleCancelForm}
                     medicationToEdit={editingMedication}
                     medicationNames={uniqueMedicationNames}
-                    initialData={prefilledData}
+                    prefilledData={prefilledData}
                   />
                 </div>
               </div>
@@ -324,13 +274,6 @@ function App() {
               />
             )}
             
-            {isScannerVisible && (
-                <PrescriptionScanner
-                    onClose={() => setIsScannerVisible(false)}
-                    onScanComplete={handleScanComplete}
-                />
-            )}
-
             <MedicationList
               medications={medications}
               onDeleteMedication={deleteMedication}
@@ -341,7 +284,7 @@ function App() {
 
             {medications.length === 0 && !isFormVisible && (
               <div className="text-center py-20 px-6 bg-white dark:bg-brand-gray-800 rounded-lg shadow-md border border-brand-gray-200 dark:border-brand-gray-700">
-                <Logo className="mx-auto h-20 w-20 opacity-30 dark:opacity-50"/>
+                <LogoIcon className="mx-auto h-16 w-16"/>
                 <h3 className="mt-4 text-xl font-semibold text-brand-gray-800 dark:text-brand-gray-100">No Medications Added Yet</h3>
                 <p className="mt-2 text-brand-gray-500 dark:text-brand-gray-400">
                   Click the 'Add New Medication' button to start tracking.

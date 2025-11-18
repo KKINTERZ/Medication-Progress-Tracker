@@ -2,18 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-," />
-    <link rel="icon" type="image/png" href="https://iili.io/f9QJocF.png"/>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Medication Progress Tracker</title>
-    
-    <!-- PWA Meta Tags -->
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#FFFBEB" />
-    <link rel="apple-touch-icon" href="https://iili.io/f9QJocF.png" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="MedTracker" />
-
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -45,6 +36,9 @@
                 '900': '#11182C',
               }
             },
+            backgroundSize: {
+                '200%': '200% 200%',
+            },
             keyframes: {
               pop: {
                 '0%, 100%': { transform: 'scale(1)' },
@@ -54,21 +48,26 @@
                 '0%, 100%': { transform: 'scale(1)' },
                 '50%': { transform: 'scale(0.95)' },
               },
-              spin: {
-                'from': { transform: 'rotate(0deg)' },
-                'to': { transform: 'rotate(360deg)' },
-              }
+              'theme-icon-spin': {
+                'from': { transform: 'rotate(-90deg) scale(0.5)', opacity: '0' },
+                'to': { transform: 'rotate(0) scale(1)', opacity: '1' },
+              },
+              'gradient-shift': {
+                '0%, 100%': { 'background-position': '0% 50%' },
+                '50%': { 'background-position': '100% 50%' },
+              },
             },
             animation: {
               pop: 'pop 0.5s ease-out',
               'button-press': 'button-press 0.2s ease-out',
-              spin: 'spin 1s linear infinite',
+              'theme-icon-spin': 'theme-icon-spin 0.3s ease-out',
+              'gradient-shift': 'gradient-shift 6s ease infinite',
             }
           },
         },
       }
     </script>
-    <script src="https://accounts.google.com/gsi/client" async></script>
+    
   <script type="importmap">
 {
   "imports": {
@@ -76,12 +75,17 @@
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "jwt-decode": "https://aistudiocdn.com/jwt-decode@^4.0.0",
-    "@google/genai": "https://aistudiocdn.com/@google/genai-sdk@^0.20.0"
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "vite": "https://aistudiocdn.com/vite@^7.2.2",
+    "path": "https://aistudiocdn.com/path@^0.12.7",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0"
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
   <body>
     <div id="root"></div>
-  </body>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>

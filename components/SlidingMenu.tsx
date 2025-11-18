@@ -1,136 +1,96 @@
-import React, { useEffect } from 'react';
-import { XIcon, ScanIcon, SparklesIcon, LogoutIcon, SwitchAccountIcon } from './Icons';
-import Logo from './Logo';
-import { UserProfile } from '../types';
-import { useTheme } from '../hooks/useTheme';
+import React from 'react';
+import { SparklesIcon, XIcon } from './Icons';
 
 interface SlidingMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  isAutoLoggingEnabled: boolean;
-  onAutoLoggingToggle: (enabled: boolean) => void;
-  user: UserProfile | null;
-  onLogout: () => void;
-  onOpenScanner: () => void;
+  isAutoLogEnabled: boolean;
+  onAutoLogToggle: (enabled: boolean) => void;
+  onReaderOpen: () => void;
+  onAnalyserOpen: () => void;
 }
 
-const SlidingMenu: React.FC<SlidingMenuProps> = ({ isOpen, onClose, isAutoLoggingEnabled, onAutoLoggingToggle, user, onLogout, onOpenScanner }) => {
-  const { theme } = useTheme();
-
-  useEffect(() => {
-    // Only try to render if the menu is open, the user is not logged in, and the GSI client is available.
-    if (isOpen && !user && window.google?.accounts?.id) {
-      const googleButtonContainer = document.getElementById('google-signin-button-menu-container');
-      if (googleButtonContainer) {
-        // Clear container to prevent duplicate buttons on re-render, especially for theme changes.
-        googleButtonContainer.innerHTML = '';
-        window.google.accounts.id.renderButton(
-          googleButtonContainer,
-          { theme: theme === 'light' ? 'outline' : 'filled_black', size: 'large', type: 'standard', text: 'signin_with', width: '280' }
-        );
-      }
-    }
-  }, [isOpen, user, theme]);
-
-  const handleLogoutAndClose = () => {
-    onLogout();
-    onClose();
-  };
-  
+const SlidingMenu: React.FC<SlidingMenuProps> = ({
+  isOpen,
+  onClose,
+  isAutoLogEnabled,
+  onAutoLogToggle,
+  onReaderOpen,
+  onAnalyserOpen,
+}) => {
   return (
     <>
-      <div 
-        className={`fixed inset-0 bg-black bg-opacity-60 z-40 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      <div
+        className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity ${
+          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
         onClick={onClose}
-        aria-hidden={!isOpen}
+        aria-hidden="true"
       />
-      <div 
-        className={`fixed inset-y-0 left-0 w-full max-w-xs bg-white dark:bg-brand-gray-800 shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      <div
+        className={`fixed top-0 left-0 h-full w-full max-w-sm bg-white dark:bg-brand-gray-800 shadow-2xl z-50 transform transition-transform ease-in-out duration-300 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="menu-title"
       >
         <div className="flex flex-col h-full">
-          <div className="flex justify-between items-center p-4 border-b border-brand-gray-200 dark:border-brand-gray-700">
-            <div className="flex items-center gap-x-2">
-              <Logo className="w-6 h-6" />
-              <h2 id="menu-title" className="text-lg font-bold text-brand-gray-900 dark:text-brand-gray-100">
-                Menu
-              </h2>
-            </div>
-            <button 
-              onClick={onClose} 
+          <div className="flex justify-between items-center p-5 border-b border-brand-gray-200 dark:border-brand-gray-700">
+            <h2 id="menu-title" className="text-xl font-bold text-brand-gray-900 dark:text-brand-gray-100 flex items-center gap-2">
+                <SparklesIcon className="w-6 h-6 text-brand-gold-DEFAULT" />
+                AI Features
+            </h2>
+            <button
+              onClick={onClose}
               className="p-1 rounded-full text-brand-gray-400 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 hover:text-brand-gray-600 dark:hover:text-brand-gray-200 focus:outline-none focus:ring-2 focus:ring-brand-gold-DEFAULT"
               aria-label="Close menu"
             >
               <XIcon className="w-6 h-6" />
             </button>
           </div>
-          
-          <nav className="flex-grow p-4 space-y-2">
-            <div className="p-3 rounded-lg hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-x-3">
-                  <SparklesIcon className="w-6 h-6 text-brand-gold-DEFAULT" />
-                  <div>
-                    <p className="font-semibold text-brand-gray-800 dark:text-brand-gray-200">Auto-Log Doses</p>
-                    <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400">Log doses at reminder times.</p>
-                  </div>
+
+          <div className="p-6 space-y-4">
+            <div className="bg-brand-gold-50 dark:bg-brand-gray-700/50 p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h3 className="font-semibold text-brand-gray-800 dark:text-brand-gray-200">Auto Dose Logging</h3>
+                        <p className="text-sm text-brand-gray-500 dark:text-brand-gray-400">Enable smart suggestions for logging missed doses.</p>
+                    </div>
+                    <button
+                        role="switch"
+                        aria-checked={isAutoLogEnabled}
+                        onClick={() => onAutoLogToggle(!isAutoLogEnabled)}
+                        className={`${
+                        isAutoLogEnabled ? 'bg-brand-gold-dark' : 'bg-brand-gray-300 dark:bg-brand-gray-600'
+                        } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-gold-dark focus:ring-offset-2`}
+                    >
+                        <span className={`${
+                            isAutoLogEnabled ? 'translate-x-6' : 'translate-x-1'
+                        } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
+                    </button>
                 </div>
-                <label htmlFor="auto-log-toggle" className="relative inline-flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    id="auto-log-toggle" 
-                    className="sr-only peer" 
-                    checked={isAutoLoggingEnabled}
-                    onChange={(e) => onAutoLoggingToggle(e.target.checked)}
-                  />
-                  <div className="w-11 h-6 bg-brand-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-gold-DEFAULT dark:peer-focus:ring-brand-gold-dark rounded-full peer dark:bg-brand-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-brand-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-brand-gray-500 peer-checked:bg-brand-gold-DEFAULT"></div>
-                </label>
-              </div>
             </div>
 
-            <a href="#" onClick={(e) => { e.preventDefault(); onOpenScanner(); }} className="flex items-center justify-between p-3 rounded-lg hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 transition-colors group">
-              <div className="flex items-center gap-x-3">
-                <ScanIcon className="w-6 h-6 text-brand-gold-DEFAULT group-hover:text-brand-gold-dark dark:group-hover:text-brand-gold-light transition-colors" />
-                <span className="font-semibold text-brand-gray-800 dark:text-brand-gray-200">AI Prescription Scanner</span>
-              </div>
-            </a>
-          </nav>
+            <button
+                onClick={() => { onReaderOpen(); onClose(); }}
+                className="w-full text-left p-4 rounded-lg hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 transition-colors"
+            >
+                <h3 className="font-semibold text-brand-gray-800 dark:text-brand-gray-200">AI Prescription Reader</h3>
+                <p className="text-sm text-brand-gray-500 dark:text-brand-gray-400 mt-1">
+                    Upload a photo of your prescription to add a new medication automatically.
+                </p>
+            </button>
 
-          <div className="p-4 border-t border-brand-gray-200 dark:border-brand-gray-700">
-            {user ? (
-              <div>
-                <div className="flex items-center gap-x-3">
-                  <img src={user.picture} alt={user.name} className="w-10 h-10 rounded-full" />
-                  <div className="min-w-0">
-                    <p className="font-semibold text-brand-gray-800 dark:text-brand-gray-200 truncate">{user.name}</p>
-                    <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400 truncate">{user.email}</p>
-                  </div>
-                </div>
-                <div className="mt-4 space-y-1">
-                  <button
-                    onClick={handleLogoutAndClose}
-                    className="w-full text-left px-3 py-2 text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 flex items-center gap-x-3 rounded-md transition-colors"
-                  >
-                    <SwitchAccountIcon className="w-5 h-5" />
-                    <span>Switch Account</span>
-                  </button>
-                  <button
-                    onClick={handleLogoutAndClose}
-                    className="w-full text-left px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 flex items-center gap-x-3 rounded-md transition-colors"
-                  >
-                    <LogoutIcon className="w-5 h-5" />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <p className="text-sm text-center text-brand-gray-600 dark:text-brand-gray-400 mb-4">Sign in to sync your medications.</p>
-                <div id="google-signin-button-menu-container" className="flex justify-center"></div>
-              </div>
-            )}
+             <button
+                onClick={() => { onAnalyserOpen(); onClose(); }}
+                className="w-full text-left p-4 rounded-lg hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 transition-colors"
+            >
+                <h3 className="font-semibold text-brand-gray-800 dark:text-brand-gray-200">AI Medication Analyser</h3>
+                <p className="text-sm text-brand-gray-500 dark:text-brand-gray-400 mt-1">
+                    Get an AI-generated analysis of your current medication list.
+                </p>
+            </button>
           </div>
         </div>
       </div>

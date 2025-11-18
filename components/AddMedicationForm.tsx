@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Medication } from '../types';
-// FIX: Removed 'PillIcon' from import as it is not exported from './Icons'.
-import { PlusIcon, XIcon, BellIcon, EditIcon } from './Icons';
+import { PillIcon, PlusIcon, XIcon, BellIcon, EditIcon, SparklesIcon } from './Icons';
+import { GoogleGenAI, Type } from '@google/genai';
+
+type PrefilledMedicationData = Omit<Medication, 'id' | 'startDate' | 'dosesTaken' | 'reminders'> & { reminders?: string[] };
 
 interface AddMedicationFormProps {
   onSave: (data: Omit<Medication, 'id' | 'startDate' | 'dosesTaken'>, id?: string) => void;
   onCancel: () => void;
   medicationToEdit?: Medication | null;
   medicationNames: string[];
-  initialData?: { name: string; totalTablets: number; dosesPerDay: number; tabletsPerDose: number; } | null;
+  prefilledData?: PrefilledMedicationData | null;
 }
 
-const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel, medicationToEdit, medicationNames, initialData }) => {
+const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel, medicationToEdit, medicationNames, prefilledData }) => {
   const [name, setName] = useState('');
   const [totalTablets, setTotalTablets] = useState('');
   const [dosesPerDay, setDosesPerDay] = useState('');
@@ -19,28 +21,22 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
   const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [reminderTimes, setReminderTimes] = useState<string[]>(['09:00']);
   const [error, setError] = useState('');
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const isEditMode = !!medicationToEdit;
+  const formDataSource = medicationToEdit || prefilledData;
 
   useEffect(() => {
-    if (medicationToEdit) {
-      setName(medicationToEdit.name);
-      setTotalTablets(String(medicationToEdit.totalTablets));
-      setDosesPerDay(String(medicationToEdit.dosesPerDay));
-      setTabletsPerDose(String(medicationToEdit.tabletsPerDose || 1));
-      const hasReminders = medicationToEdit.reminders && medicationToEdit.reminders.length > 0;
+    if (formDataSource) {
+      setName(formDataSource.name);
+      setTotalTablets(String(formDataSource.totalTablets));
+      setDosesPerDay(String(formDataSource.dosesPerDay));
+      setTabletsPerDose(String(formDataSource.tabletsPerDose || 1));
+      const hasReminders = formDataSource.reminders && formDataSource.reminders.length > 0;
       setRemindersEnabled(hasReminders);
-      setReminderTimes(hasReminders ? [...medicationToEdit.reminders!].sort() : ['09:00']);
-    } else if (initialData) {
-      setName(initialData.name || '');
-      setTotalTablets(String(initialData.totalTablets || ''));
-      setDosesPerDay(String(initialData.dosesPerDay || ''));
-      setTabletsPerDose(String(initialData.tabletsPerDose || '1'));
-      // Don't enable reminders by default for scanned items
-      setRemindersEnabled(false);
-      setReminderTimes(['09:00']);
+      setReminderTimes(hasReminders ? [...formDataSource.reminders!].sort() : ['09:00']);
     }
-  }, [medicationToEdit, initialData]);
+  }, [formDataSource]);
 
   const handleAddReminder = () => {
     setReminderTimes(times => [...times, '17:00'].sort());
@@ -59,6 +55,44 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
   const sortReminders = () => {
     setReminderTimes(times => [...times].sort());
   }
+  
+  const handleAIFill = async () => {
+    if (!name.trim()) {
+        setError("Please enter a medication name first.");
+        return;
+    }
+    setIsAiLoading(true);
+    setError('');
+    try {
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `Based on the medication name "${name}", what is a common prescription? Provide the total number of tablets for a standard course, the number of doses per day, and tablets per dose.`,
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        totalTablets: { type: Type.NUMBER },
+                        dosesPerDay: { type: Type.NUMBER },
+                        tabletsPerDose: { type: Type.NUMBER },
+                    },
+                     required: ["totalTablets", "dosesPerDay", "tabletsPerDose"],
+                },
+            },
+        });
+        const result = JSON.parse(response.text);
+        setTotalTablets(String(result.totalTablets || ''));
+        setDosesPerDay(String(result.dosesPerDay || ''));
+        setTabletsPerDose(String(result.tabletsPerDose || '1'));
+
+    } catch (err) {
+        console.error(err);
+        setError("Couldn't fetch AI suggestions. Please fill details manually.");
+    } finally {
+        setIsAiLoading(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,7 +143,7 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
           <label htmlFor="name" className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300">
             Medication Name
           </label>
-          <div className="mt-1">
+          <div className="mt-1 relative">
             <input
               type="text"
               id="name"
@@ -124,6 +158,15 @@ const AddMedicationForm: React.FC<AddMedicationFormProps> = ({ onSave, onCancel,
                 <option key={medName} value={medName} />
               ))}
             </datalist>
+             <button
+                type="button"
+                onClick={handleAIFill}
+                disabled={isAiLoading}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-brand-gold-dark dark:text-brand-gold-light hover:text-brand-success-dark disabled:text-brand-gray-400 disabled:cursor-wait"
+                aria-label="Auto-fill with AI"
+            >
+                {isAiLoading ? <div className="w-5 h-5 border-2 border-brand-gray-300 border-t-brand-gold-dark rounded-full animate-spin"></div> : <SparklesIcon className="w-5 h-5" />}
+            </button>
           </div>
         </div>
 
