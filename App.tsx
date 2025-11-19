@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Medication, UserProfile } from './types';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -14,8 +15,10 @@ import Logo from './components/Logo';
 import PrescriptionScanner from './components/PrescriptionScanner';
 import AIMedicationAnalyserModal from './components/AIMedicationAnalyserModal';
 import AuthModal from './components/AuthModal';
-import { auth } from './firebase';
-import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import MedicalRecordsManager from './components/MedicalRecordsManager';
+import { auth, googleProvider, db } from './firebase';
+import { onAuthStateChanged, signOut, User, signInWithPopup, deleteUser } from 'firebase/auth';
+import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 
 type ScannedMedicationData = {
   name: string;
@@ -97,22 +100,47 @@ function App() {
   const [isAutoLoggingEnabled, setIsAutoLoggingEnabled] = useLocalStorage<boolean>('autoLoggingEnabled', false, userProfile?.id);
   const [isScannerVisible, setIsScannerVisible] = useState(false);
   const [isAnalyserVisible, setIsAnalyserVisible] = useState(false);
+  const [isMedicalRecordsVisible, setIsMedicalRecordsVisible] = useState(false);
   const [prefilledData, setPrefilledData] = useState<ScannedMedicationData | null>(null);
 
   // Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'edit-profile'>('login');
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setFirebaseUser(user);
       if (user) {
-        setUserProfile({
-          id: user.uid,
-          name: user.displayName || 'User',
-          email: user.email || '',
-          picture: user.photoURL || undefined
-        });
+        // Check if user exists in Firestore
+        const userRef = doc(db, 'users', user.uid);
+        try {
+            const userSnap = await getDoc(userRef);
+            
+            if (userSnap.exists()) {
+                // User exists in DB, use that data
+                const userData = userSnap.data() as UserProfile;
+                setUserProfile(userData);
+            } else {
+                // User doesn't exist in DB (new Google login or legacy), create it
+                const newUserProfile: UserProfile = {
+                    id: user.uid,
+                    name: user.displayName || 'User',
+                    email: user.email || '',
+                    picture: user.photoURL || undefined
+                };
+                await setDoc(userRef, newUserProfile);
+                setUserProfile(newUserProfile);
+            }
+        } catch (error) {
+            console.error("Error fetching user profile:", error);
+            // Fallback to auth data if DB fail
+            setUserProfile({
+                id: user.uid,
+                name: user.displayName || 'User',
+                email: user.email || '',
+                picture: user.photoURL || undefined
+            });
+        }
       } else {
         setUserProfile(null);
       }
@@ -137,20 +165,62 @@ function App() {
       setIsAuthModalOpen(true);
   };
 
+  const handleEditProfile = () => {
+      setAuthMode('edit-profile');
+      setIsAuthModalOpen(true);
+  };
+
+  const handleProfileUpdate = async () => {
+      // Refresh profile data from Firestore
+      if (auth.currentUser) {
+          const userRef = doc(db, 'users', auth.currentUser.uid);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+              setUserProfile(userSnap.data() as UserProfile);
+          }
+      }
+      setIsAuthModalOpen(false);
+  };
+
   const handleGoogleLogin = async () => {
-    // In a real scenario, we would use signInWithPopup(auth, new GoogleAuthProvider())
-    // For now keeping the simulation or switching it would require provider setup.
-    // The user asked to implement email/password auth mainly.
-    console.log("Google login clicked - implement provider if needed");
+    try {
+      await signInWithPopup(auth, googleProvider);
+      setIsAuthModalOpen(false);
+    } catch (error) {
+      console.error("Error signing in with Google: ", error);
+      alert("Failed to sign in with Google. Please try again.");
+    }
   };
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      // UserProfile is cleared by onAuthStateChanged
     } catch (error) {
       console.error("Error signing out: ", error);
     }
+  };
+
+  const handleDeleteAccount = async () => {
+      if (!auth.currentUser) return;
+      
+      try {
+          const uid = auth.currentUser.uid;
+          // 1. Delete from Firestore
+          await deleteDoc(doc(db, 'users', uid));
+          
+          // 2. Delete Auth User
+          await deleteUser(auth.currentUser);
+          
+          setUserProfile(null);
+          alert("Account deleted successfully.");
+      } catch (error: any) {
+          console.error("Error deleting account:", error);
+          if (error.code === 'auth/requires-recent-login') {
+              alert("For security, please log out and log back in before deleting your account.");
+          } else {
+              alert("Failed to delete account. Please try again.");
+          }
+      }
   };
   
   const handleAutoLogDose = (medicationId: string, newDosesTaken: Record<string, number>) => {
@@ -229,6 +299,11 @@ function App() {
     setIsAnalyserVisible(true);
   };
 
+  const handleOpenMedicalRecords = () => {
+      setIsMenuOpen(false);
+      setIsMedicalRecordsVisible(true);
+  };
+
   const handleScanComplete = (data: ScannedMedicationData) => {
     setPrefilledData(data);
     setEditingMedication(null);
@@ -248,6 +323,7 @@ function App() {
           onLogout={handleLogout}
           onOpenScanner={handleOpenScanner}
           onOpenAnalyser={handleOpenAnalyser}
+          onOpenMedicalRecords={handleOpenMedicalRecords}
         />
       )}
 
@@ -256,6 +332,8 @@ function App() {
         onClose={() => setIsAuthModalOpen(false)}
         onGoogleLogin={handleGoogleLogin}
         initialMode={authMode}
+        currentUser={userProfile}
+        onUpdate={handleProfileUpdate}
       />
 
       <header className="bg-white dark:bg-brand-gray-800 shadow-sm dark:shadow-none dark:border-b dark:border-brand-gray-700 sticky top-0 z-20">
@@ -296,6 +374,8 @@ function App() {
             <UserProfileDisplay
               user={userProfile}
               onLogout={handleLogout}
+              onEditProfile={handleEditProfile}
+              onDeleteAccount={handleDeleteAccount}
             />
           </div>
         </div>
@@ -342,6 +422,12 @@ function App() {
                 <AIMedicationAnalyserModal
                     medications={medications}
                     onClose={() => setIsAnalyserVisible(false)}
+                />
+            )}
+
+            {isMedicalRecordsVisible && (
+                <MedicalRecordsManager
+                    onClose={() => setIsMedicalRecordsVisible(false)}
                 />
             )}
 

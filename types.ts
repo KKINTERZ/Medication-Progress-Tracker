@@ -1,4 +1,3 @@
-
 export interface Medication {
   id: string;
   name: string;
@@ -15,4 +14,16 @@ export interface UserProfile {
   name: string;
   email: string;
   picture?: string;
+}
+
+export interface MedicalFile {
+  id: string;
+  name: string;
+  url: string;
+  storagePath: string;
+  type: string;
+  size: number;
+  createdAt: string;
+  notes?: string;
+  aiSummary?: string;
 }

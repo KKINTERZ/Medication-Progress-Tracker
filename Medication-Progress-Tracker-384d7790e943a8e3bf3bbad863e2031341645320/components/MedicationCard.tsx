@@ -36,8 +36,7 @@ const MedicationCard: React.FC<MedicationCardProps> = ({ medication, onUpdate, o
   const currentTabletsPerDose = tabletsPerDose || 1;
 
   const tabletsRemaining = useMemo(() => {
-    // FIX: Add explicit types to the reduce function's parameters (`sum` and `count`) to resolve a TypeScript error. This ensures that the arithmetic operation is performed on numbers.
-    const totalDosesTaken = Object.values(dosesTaken).reduce((sum: number, count: number) => sum + count, 0);
+    const totalDosesTaken = Object.values(dosesTaken).reduce((sum: number, count: number) => sum + Number(count), 0);
     const totalTabletsTaken = totalDosesTaken * currentTabletsPerDose;
     return Number(totalTablets) - totalTabletsTaken;
   }, [dosesTaken, totalTablets, currentTabletsPerDose]);

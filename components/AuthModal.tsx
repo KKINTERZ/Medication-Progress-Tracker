@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { XIcon, SpinnerIcon, UploadIcon } from './Icons';
 import Logo from './Logo';
-import { auth, storage } from '../firebase';
+import { auth, storage, db } from '../firebase';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -10,18 +11,20 @@ import {
   AuthError
 } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { doc, setDoc, updateDoc } from 'firebase/firestore';
+import { UserProfile } from '../types';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onGoogleLogin: () => void;
-  initialMode?: 'login' | 'signup';
-  // We remove the manual onLogin/onResetPassword props as we handle this directly with Firebase now
-  // but keeping onGoogleLogin for the button if passed, though implementing Google Auth with Firebase is better long term
+  initialMode?: 'login' | 'signup' | 'edit-profile';
+  currentUser?: UserProfile | null;
+  onUpdate?: () => void;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onGoogleLogin, initialMode = 'login' }) => {
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password'>(initialMode);
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onGoogleLogin, initialMode = 'login', currentUser, onUpdate }) => {
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password' | 'edit-profile'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [repeatPassword, setRepeatPassword] = useState('');
@@ -39,14 +42,23 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onGoogleLogin, i
           setMode(initialMode);
           setError('');
           setResetSent(false);
-          setEmail('');
-          setPassword('');
-          setRepeatPassword('');
-          setName('');
-          setPhotoFile(null);
-          setPhotoPreview(null);
+          
+          if (initialMode === 'edit-profile' && currentUser) {
+              setName(currentUser.name || '');
+              setEmail(currentUser.email || '');
+              setPhotoPreview(currentUser.picture || null);
+              setPhotoFile(null);
+              setPassword(''); // Password not required for simple profile update
+          } else {
+              setEmail('');
+              setPassword('');
+              setRepeatPassword('');
+              setName('');
+              setPhotoFile(null);
+              setPhotoPreview(null);
+          }
       }
-  }, [isOpen, initialMode]);
+  }, [isOpen, initialMode, currentUser]);
 
   if (!isOpen) return null;
 
@@ -72,7 +84,36 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onGoogleLogin, i
           return;
       }
 
-      // Basic validation
+      if (mode === 'edit-profile') {
+          if (!auth.currentUser) throw new Error('No user logged in');
+          if (!name.trim()) throw new Error('Please enter your name');
+
+          let photoURL = auth.currentUser.photoURL;
+          
+          if (photoFile) {
+              const storageRef = ref(storage, `profile_photos/${auth.currentUser.uid}`);
+              await uploadBytes(storageRef, photoFile);
+              photoURL = await getDownloadURL(storageRef);
+          }
+
+          // Update Auth Profile
+          await updateProfile(auth.currentUser, {
+              displayName: name,
+              photoURL: photoURL
+          });
+
+          // Update Firestore Document
+          await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+              name: name,
+              picture: photoURL
+          });
+
+          if (onUpdate) onUpdate();
+          else onClose();
+          return;
+      }
+
+      // Basic validation for login/signup
       if (!email || !password) {
         throw new Error('Please fill in all fields');
       }
@@ -105,19 +146,27 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onGoogleLogin, i
             photoURL = await getDownloadURL(storageRef);
           }
 
+          // Update Auth Profile
           await updateProfile(user, {
             displayName: name,
             photoURL: photoURL || null
+          });
+
+          // Create User Document in Firestore
+          await setDoc(doc(db, 'users', user.uid), {
+              id: user.uid,
+              name: name,
+              email: email,
+              picture: photoURL || null
           });
           
           onClose();
         } catch (err: any) {
           const errorCode = err.code;
           if (errorCode === 'auth/email-already-in-use') {
-             // Specific requirement: "User already exists. Sign in?"
              setError("User already exists. Sign in?");
              setIsLoading(false);
-             return; // Don't throw, just return so we display the error state
+             return; 
           }
           throw err;
         }
@@ -170,15 +219,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onGoogleLogin, i
                   <div className="text-center mb-6">
                     <Logo className="h-12 w-12 mx-auto mb-3" />
                     <h2 className="text-2xl font-bold text-brand-gray-900 dark:text-brand-gray-100">
-                      {mode === 'login' ? 'Welcome Back' : (mode === 'signup' ? 'Create Account' : 'Reset Password')}
+                      {mode === 'login' ? 'Welcome Back' : (mode === 'signup' ? 'Create Account' : (mode === 'edit-profile' ? 'Edit Profile' : 'Reset Password'))}
                     </h2>
                     <p className="text-brand-gray-500 dark:text-brand-gray-400 text-sm mt-1">
-                      {mode === 'login' ? 'Sign in to continue tracking' : (mode === 'signup' ? 'Start your journey to better health' : 'Enter your email to receive instructions')}
+                      {mode === 'login' ? 'Sign in to continue tracking' : (mode === 'signup' ? 'Start your journey to better health' : (mode === 'edit-profile' ? 'Update your profile information' : 'Enter your email to receive instructions'))}
                     </p>
                   </div>
 
                   <form onSubmit={handleSubmit} className="space-y-4">
-                    {mode === 'signup' && (
+                    {(mode === 'signup' || mode === 'edit-profile') && (
                       <>
                          <div className="flex justify-center mb-4">
                             <div 
@@ -222,12 +271,13 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onGoogleLogin, i
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full px-4 py-2 rounded-lg border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 focus:ring-2 focus:ring-brand-gold-DEFAULT focus:border-transparent outline-none transition-all"
+                        disabled={mode === 'edit-profile'}
+                        className={`w-full px-4 py-2 rounded-lg border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 focus:ring-2 focus:ring-brand-gold-DEFAULT focus:border-transparent outline-none transition-all ${mode === 'edit-profile' ? 'opacity-60 cursor-not-allowed' : ''}`}
                         placeholder="you@example.com"
                       />
                     </div>
 
-                    {mode !== 'forgot-password' && (
+                    {mode !== 'forgot-password' && mode !== 'edit-profile' && (
                         <>
                             <div>
                             <div className="flex justify-between items-center mb-1">
@@ -287,12 +337,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onGoogleLogin, i
                           <span>Processing...</span>
                         </>
                       ) : (
-                        <span>{mode === 'login' ? 'Sign In' : (mode === 'signup' ? 'Create Account' : 'Send Reset Link')}</span>
+                        <span>{mode === 'login' ? 'Sign In' : (mode === 'signup' ? 'Create Account' : (mode === 'edit-profile' ? 'Save Changes' : 'Send Reset Link'))}</span>
                       )}
                     </button>
                   </form>
                 
-                {mode !== 'forgot-password' && (
+                {mode !== 'forgot-password' && mode !== 'edit-profile' && (
                     <div className="mt-6">
                         <div className="relative">
                         <div className="absolute inset-0 flex items-center">
@@ -329,7 +379,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onGoogleLogin, i
                           >
                             Back to Log In
                           </button>
-                      ) : (
+                      ) : (mode !== 'edit-profile' && (
                         <p className="text-sm text-brand-gray-500 dark:text-brand-gray-400">
                           {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
                           <button
@@ -339,7 +389,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onGoogleLogin, i
                             {mode === 'login' ? 'Sign Up' : 'Log In'}
                           </button>
                         </p>
-                      )}
+                      ))}
                   </div>
                 </>
             )}

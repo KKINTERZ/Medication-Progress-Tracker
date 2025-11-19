@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { XIcon, ScanIcon, SparklesIcon, LogoutIcon, SwitchAccountIcon, LightBulbIcon, UserIcon } from './Icons';
+import { XIcon, ScanIcon, SparklesIcon, LogoutIcon, SwitchAccountIcon, LightBulbIcon, UserIcon, ChatBubbleIcon, GlobeIcon, MapPinIcon, ClipboardIcon, DocumentTextIcon } from './Icons';
 import Logo from './Logo';
 import { UserProfile } from '../types';
 
@@ -13,10 +12,11 @@ interface SlidingMenuProps {
   onLogout: () => void;
   onOpenScanner: () => void;
   onOpenAnalyser: () => void;
+  onOpenMedicalRecords: () => void;
 }
 
 const SlidingMenu: React.FC<SlidingMenuProps> = ({ 
-  isOpen, onClose, isAutoLoggingEnabled, onAutoLoggingToggle, user, onLogout, onOpenScanner, onOpenAnalyser 
+  isOpen, onClose, isAutoLoggingEnabled, onAutoLoggingToggle, user, onLogout, onOpenScanner, onOpenAnalyser, onOpenMedicalRecords
 }) => {
   
   const handleLogoutAndClose = () => {
@@ -54,7 +54,7 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({
             </button>
           </div>
           
-          <nav className="flex-grow p-4 space-y-2">
+          <nav className="flex-grow p-4 space-y-2 overflow-y-auto">
             <div className="p-3 rounded-lg hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 transition-colors">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-x-3">
@@ -90,6 +90,50 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({
                 <span className="font-semibold text-brand-gray-800 dark:text-brand-gray-200">AI Medication Analyser</span>
               </div>
             </a>
+
+            <a href="#" onClick={(e) => { e.preventDefault(); onOpenMedicalRecords(); }} className="flex items-center justify-between p-3 rounded-lg hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 transition-colors group">
+              <div className="flex items-center gap-x-3">
+                <DocumentTextIcon className="w-6 h-6 text-brand-gold-DEFAULT group-hover:text-brand-gold-dark dark:group-hover:text-brand-gold-light transition-colors" />
+                <span className="font-semibold text-brand-gray-800 dark:text-brand-gray-200">Medical Records</span>
+              </div>
+            </a>
+
+            <div className="my-4 border-t border-brand-gray-200 dark:border-brand-gray-700 mx-1"></div>
+            <p className="px-3 text-xs font-bold text-brand-gray-400 dark:text-brand-gray-500 uppercase tracking-wider mb-2">
+              Coming Soon
+            </p>
+
+            <div className="flex items-center justify-between p-3 rounded-lg opacity-60 cursor-not-allowed">
+              <div className="flex items-center gap-x-3">
+                <ChatBubbleIcon className="w-6 h-6 text-brand-gray-400 dark:text-brand-gray-500" />
+                <span className="font-semibold text-brand-gray-500 dark:text-brand-gray-400">AI Medical Advisor</span>
+              </div>
+              <span className="text-[10px] font-bold bg-brand-gray-100 dark:bg-brand-gray-700 text-brand-gray-500 px-2 py-0.5 rounded-full border border-brand-gray-200 dark:border-brand-gray-600">Soon</span>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-lg opacity-60 cursor-not-allowed">
+              <div className="flex items-center gap-x-3">
+                <GlobeIcon className="w-6 h-6 text-brand-gray-400 dark:text-brand-gray-500" />
+                <span className="font-semibold text-brand-gray-500 dark:text-brand-gray-400">AI Health Research</span>
+              </div>
+              <span className="text-[10px] font-bold bg-brand-gray-100 dark:bg-brand-gray-700 text-brand-gray-500 px-2 py-0.5 rounded-full border border-brand-gray-200 dark:border-brand-gray-600">Soon</span>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-lg opacity-60 cursor-not-allowed">
+              <div className="flex items-center gap-x-3">
+                <MapPinIcon className="w-6 h-6 text-brand-gray-400 dark:text-brand-gray-500" />
+                <span className="font-semibold text-brand-gray-500 dark:text-brand-gray-400">Smart Pharmacy Locator</span>
+              </div>
+              <span className="text-[10px] font-bold bg-brand-gray-100 dark:bg-brand-gray-700 text-brand-gray-500 px-2 py-0.5 rounded-full border border-brand-gray-200 dark:border-brand-gray-600">Soon</span>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-lg opacity-60 cursor-not-allowed">
+              <div className="flex items-center gap-x-3">
+                <ClipboardIcon className="w-6 h-6 text-brand-gray-400 dark:text-brand-gray-500" />
+                <span className="font-semibold text-brand-gray-500 dark:text-brand-gray-400">Symptom & Mood Log</span>
+              </div>
+              <span className="text-[10px] font-bold bg-brand-gray-100 dark:bg-brand-gray-700 text-brand-gray-500 px-2 py-0.5 rounded-full border border-brand-gray-200 dark:border-brand-gray-600">Soon</span>
+            </div>
           </nav>
 
           <div className="p-4 border-t border-brand-gray-200 dark:border-brand-gray-700">
