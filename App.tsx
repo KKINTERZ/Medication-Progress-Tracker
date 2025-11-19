@@ -16,9 +16,10 @@ import PrescriptionScanner from './components/PrescriptionScanner';
 import AIMedicationAnalyserModal from './components/AIMedicationAnalyserModal';
 import AuthModal from './components/AuthModal';
 import MedicalRecordsManager from './components/MedicalRecordsManager';
-import { auth, googleProvider, db } from './firebase';
+import { auth, googleProvider, db, storage } from './firebase';
 import { onAuthStateChanged, signOut, User, signInWithPopup, deleteUser } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { ref, deleteObject, listAll } from 'firebase/storage';
 
 type ScannedMedicationData = {
   name: string;
@@ -112,29 +113,33 @@ function App() {
       setFirebaseUser(user);
       if (user) {
         // Check if user exists in Firestore
-        const userRef = doc(db, 'users', user.uid);
+        const userDocRef = doc(db, 'users', user.uid);
+        
         try {
-            const userSnap = await getDoc(userRef);
-            
-            if (userSnap.exists()) {
-                // User exists in DB, use that data
-                const userData = userSnap.data() as UserProfile;
-                setUserProfile(userData);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+                const userData = userDoc.data() as UserProfile;
+                setUserProfile({ ...userData, id: user.uid });
             } else {
-                // User doesn't exist in DB (new Google login or legacy), create it
-                const newUserProfile: UserProfile = {
+                // First time login or Google login where doc wasn't created yet
+                const newProfile: UserProfile = {
                     id: user.uid,
                     name: user.displayName || 'User',
                     email: user.email || '',
                     picture: user.photoURL || undefined
                 };
-                await setDoc(userRef, newUserProfile);
-                setUserProfile(newUserProfile);
+                // Attempt to create the user document
+                try {
+                   await setDoc(userDocRef, newProfile);
+                } catch (e) {
+                    console.warn("Could not create user document in Firestore (likely missing permissions or db)", e);
+                }
+                setUserProfile(newProfile);
             }
         } catch (error) {
             console.error("Error fetching user profile:", error);
-            // Fallback to auth data if DB fail
-            setUserProfile({
+             // Fallback to basic auth info if Firestore fails
+             setUserProfile({
                 id: user.uid,
                 name: user.displayName || 'User',
                 email: user.email || '',
@@ -170,16 +175,66 @@ function App() {
       setIsAuthModalOpen(true);
   };
 
-  const handleProfileUpdate = async () => {
-      // Refresh profile data from Firestore
+  const handleProfileUpdate = () => {
+      // Force update local profile state from auth.currentUser after update
       if (auth.currentUser) {
-          const userRef = doc(db, 'users', auth.currentUser.uid);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists()) {
-              setUserProfile(userSnap.data() as UserProfile);
-          }
+        setUserProfile({
+            id: auth.currentUser.uid,
+            name: auth.currentUser.displayName || 'User',
+            email: auth.currentUser.email || '',
+            picture: auth.currentUser.photoURL || undefined
+        });
       }
       setIsAuthModalOpen(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!auth.currentUser) return;
+    
+    const user = auth.currentUser;
+    const uid = user.uid;
+
+    try {
+        // 1. Try to delete User Document in Firestore
+        try {
+            await deleteDoc(doc(db, 'users', uid));
+        } catch (e) {
+            console.warn("Failed to delete user document from Firestore", e);
+        }
+        
+        // 2. Try to delete Profile Photo from Storage
+        try {
+            const photoRef = ref(storage, `profile_photos/${uid}`);
+            await deleteObject(photoRef);
+        } catch (e) {
+            // Ignore if photo doesn't exist
+            console.log("No profile photo to delete or permission denied");
+        }
+        
+        // 3. Try to delete user files from Storage (if any)
+        try {
+            const userFilesRef = ref(storage, `userdata/${uid}`);
+            const fileList = await listAll(userFilesRef);
+            await Promise.all(fileList.items.map((itemRef) => deleteObject(itemRef)));
+        } catch (e) {
+             console.log("No user files to delete or permission denied");
+        }
+
+        // 4. Delete Auth User
+        await deleteUser(user);
+        
+        setUserProfile(null);
+        setFirebaseUser(null);
+        alert("Your account has been successfully deleted.");
+
+    } catch (error: any) {
+        console.error("Error deleting account:", error);
+        if (error.code === 'auth/requires-recent-login') {
+            alert("For security reasons, you must sign in again before deleting your account. Please log out and log back in.");
+        } else {
+            alert("An error occurred while deleting your account. Please try again.");
+        }
+    }
   };
 
   const handleGoogleLogin = async () => {
@@ -195,32 +250,10 @@ function App() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      // UserProfile is cleared by onAuthStateChanged
     } catch (error) {
       console.error("Error signing out: ", error);
     }
-  };
-
-  const handleDeleteAccount = async () => {
-      if (!auth.currentUser) return;
-      
-      try {
-          const uid = auth.currentUser.uid;
-          // 1. Delete from Firestore
-          await deleteDoc(doc(db, 'users', uid));
-          
-          // 2. Delete Auth User
-          await deleteUser(auth.currentUser);
-          
-          setUserProfile(null);
-          alert("Account deleted successfully.");
-      } catch (error: any) {
-          console.error("Error deleting account:", error);
-          if (error.code === 'auth/requires-recent-login') {
-              alert("For security, please log out and log back in before deleting your account.");
-          } else {
-              alert("Failed to delete account. Please try again.");
-          }
-      }
   };
   
   const handleAutoLogDose = (medicationId: string, newDosesTaken: Record<string, number>) => {

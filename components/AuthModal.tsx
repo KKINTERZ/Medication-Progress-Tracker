@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { XIcon, SpinnerIcon, UploadIcon } from './Icons';
 import Logo from './Logo';
-import { auth, storage, db } from '../firebase';
+import { auth, storage } from '../firebase';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -11,7 +11,6 @@ import {
   AuthError
 } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { UserProfile } from '../types';
 
 interface AuthModalProps {
@@ -96,16 +95,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onGoogleLogin, i
               photoURL = await getDownloadURL(storageRef);
           }
 
-          // Update Auth Profile
           await updateProfile(auth.currentUser, {
               displayName: name,
               photoURL: photoURL
-          });
-
-          // Update Firestore Document
-          await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-              name: name,
-              picture: photoURL
           });
 
           if (onUpdate) onUpdate();
@@ -146,18 +138,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onGoogleLogin, i
             photoURL = await getDownloadURL(storageRef);
           }
 
-          // Update Auth Profile
           await updateProfile(user, {
             displayName: name,
             photoURL: photoURL || null
-          });
-
-          // Create User Document in Firestore
-          await setDoc(doc(db, 'users', user.uid), {
-              id: user.uid,
-              name: name,
-              email: email,
-              picture: photoURL || null
           });
           
           onClose();

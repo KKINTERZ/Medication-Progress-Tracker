@@ -55,10 +55,10 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({
           </div>
           
           <nav className="flex-grow p-4 space-y-2 overflow-y-auto">
-            <div className="p-3 rounded-lg hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 transition-colors">
+            <div className="p-3 rounded-lg hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 transition-colors group">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-x-3">
-                  <SparklesIcon className="w-6 h-6 text-brand-gold-DEFAULT" />
+                  <SparklesIcon className="w-6 h-6 text-brand-gold-DEFAULT transition-all duration-300 ease-out group-hover:scale-110 group-hover:rotate-12 drop-shadow-[0_0_4px_rgba(245,158,11,0.5)] group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
                   <div>
                     <p className="font-semibold text-brand-gray-800 dark:text-brand-gray-200">Auto-Log Doses</p>
                     <p className="text-xs text-brand-gray-500 dark:text-brand-gray-400">Log doses at reminder times.</p>
@@ -79,21 +79,21 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({
 
             <a href="#" onClick={(e) => { e.preventDefault(); onOpenScanner(); }} className="flex items-center justify-between p-3 rounded-lg hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 transition-colors group">
               <div className="flex items-center gap-x-3">
-                <ScanIcon className="w-6 h-6 text-brand-gold-DEFAULT group-hover:text-brand-gold-dark dark:group-hover:text-brand-gold-light transition-colors" />
+                <ScanIcon className="w-6 h-6 text-brand-gold-DEFAULT transition-all duration-300 ease-out group-hover:scale-110 drop-shadow-[0_0_4px_rgba(245,158,11,0.5)] group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
                 <span className="font-semibold text-brand-gray-800 dark:text-brand-gray-200">AI Prescription Scanner</span>
               </div>
             </a>
 
             <a href="#" onClick={(e) => { e.preventDefault(); onOpenAnalyser(); }} className="flex items-center justify-between p-3 rounded-lg hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 transition-colors group">
               <div className="flex items-center gap-x-3">
-                <LightBulbIcon className="w-6 h-6 text-brand-gold-DEFAULT group-hover:text-brand-gold-dark dark:group-hover:text-brand-gold-light transition-colors" />
+                <LightBulbIcon className="w-6 h-6 text-brand-gold-DEFAULT transition-all duration-300 ease-out group-hover:scale-110 drop-shadow-[0_0_4px_rgba(245,158,11,0.5)] group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
                 <span className="font-semibold text-brand-gray-800 dark:text-brand-gray-200">AI Medication Analyser</span>
               </div>
             </a>
 
             <a href="#" onClick={(e) => { e.preventDefault(); onOpenMedicalRecords(); }} className="flex items-center justify-between p-3 rounded-lg hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 transition-colors group">
               <div className="flex items-center gap-x-3">
-                <DocumentTextIcon className="w-6 h-6 text-brand-gold-DEFAULT group-hover:text-brand-gold-dark dark:group-hover:text-brand-gold-light transition-colors" />
+                <DocumentTextIcon className="w-6 h-6 text-brand-gold-DEFAULT transition-all duration-300 ease-out group-hover:scale-110 drop-shadow-[0_0_4px_rgba(245,158,11,0.5)] group-hover:drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
                 <span className="font-semibold text-brand-gray-800 dark:text-brand-gray-200">Medical Records</span>
               </div>
             </a>
@@ -103,33 +103,33 @@ const SlidingMenu: React.FC<SlidingMenuProps> = ({
               Coming Soon
             </p>
 
-            <div className="flex items-center justify-between p-3 rounded-lg opacity-60 cursor-not-allowed">
+            <div className="flex items-center justify-between p-3 rounded-lg opacity-60 cursor-not-allowed group">
               <div className="flex items-center gap-x-3">
-                <ChatBubbleIcon className="w-6 h-6 text-brand-gray-400 dark:text-brand-gray-500" />
+                <ChatBubbleIcon className="w-6 h-6 text-brand-gold-DEFAULT drop-shadow-[0_0_2px_rgba(245,158,11,0.3)]" />
                 <span className="font-semibold text-brand-gray-500 dark:text-brand-gray-400">AI Medical Advisor</span>
               </div>
               <span className="text-[10px] font-bold bg-brand-gray-100 dark:bg-brand-gray-700 text-brand-gray-500 px-2 py-0.5 rounded-full border border-brand-gray-200 dark:border-brand-gray-600">Soon</span>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg opacity-60 cursor-not-allowed">
+            <div className="flex items-center justify-between p-3 rounded-lg opacity-60 cursor-not-allowed group">
               <div className="flex items-center gap-x-3">
-                <GlobeIcon className="w-6 h-6 text-brand-gray-400 dark:text-brand-gray-500" />
+                <GlobeIcon className="w-6 h-6 text-brand-gold-DEFAULT drop-shadow-[0_0_2px_rgba(245,158,11,0.3)]" />
                 <span className="font-semibold text-brand-gray-500 dark:text-brand-gray-400">AI Health Research</span>
               </div>
               <span className="text-[10px] font-bold bg-brand-gray-100 dark:bg-brand-gray-700 text-brand-gray-500 px-2 py-0.5 rounded-full border border-brand-gray-200 dark:border-brand-gray-600">Soon</span>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg opacity-60 cursor-not-allowed">
+            <div className="flex items-center justify-between p-3 rounded-lg opacity-60 cursor-not-allowed group">
               <div className="flex items-center gap-x-3">
-                <MapPinIcon className="w-6 h-6 text-brand-gray-400 dark:text-brand-gray-500" />
+                <MapPinIcon className="w-6 h-6 text-brand-gold-DEFAULT drop-shadow-[0_0_2px_rgba(245,158,11,0.3)]" />
                 <span className="font-semibold text-brand-gray-500 dark:text-brand-gray-400">Smart Pharmacy Locator</span>
               </div>
               <span className="text-[10px] font-bold bg-brand-gray-100 dark:bg-brand-gray-700 text-brand-gray-500 px-2 py-0.5 rounded-full border border-brand-gray-200 dark:border-brand-gray-600">Soon</span>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg opacity-60 cursor-not-allowed">
+            <div className="flex items-center justify-between p-3 rounded-lg opacity-60 cursor-not-allowed group">
               <div className="flex items-center gap-x-3">
-                <ClipboardIcon className="w-6 h-6 text-brand-gray-400 dark:text-brand-gray-500" />
+                <ClipboardIcon className="w-6 h-6 text-brand-gold-DEFAULT drop-shadow-[0_0_2px_rgba(245,158,11,0.3)]" />
                 <span className="font-semibold text-brand-gray-500 dark:text-brand-gray-400">Symptom & Mood Log</span>
               </div>
               <span className="text-[10px] font-bold bg-brand-gray-100 dark:bg-brand-gray-700 text-brand-gray-500 px-2 py-0.5 rounded-full border border-brand-gray-200 dark:border-brand-gray-600">Soon</span>
