@@ -1,27 +1,39 @@
-
-import React, { useState, useEffect } from 'react';
-import { XIcon, SpinnerIcon } from './Icons';
+import React, { useState, useEffect, useRef } from 'react';
+import { XIcon, SpinnerIcon, UploadIcon } from './Icons';
 import Logo from './Logo';
+import { auth, storage } from '../firebase';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  updateProfile, 
+  sendPasswordResetEmail,
+  AuthError
+} from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLogin: (email: string, name?: string) => Promise<void>;
   onGoogleLogin: () => void;
-  onResetPassword?: (email: string) => Promise<void>;
   initialMode?: 'login' | 'signup';
+  // We remove the manual onLogin/onResetPassword props as we handle this directly with Firebase now
+  // but keeping onGoogleLogin for the button if passed, though implementing Google Auth with Firebase is better long term
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onGoogleLogin, onResetPassword, initialMode = 'login' }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onGoogleLogin, initialMode = 'login' }) => {
   const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [repeatPassword, setRepeatPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset state when modal opens or closes
   useEffect(() => {
       if (isOpen) {
           setMode(initialMode);
@@ -29,11 +41,22 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onGoogl
           setResetSent(false);
           setEmail('');
           setPassword('');
+          setRepeatPassword('');
           setName('');
+          setPhotoFile(null);
+          setPhotoPreview(null);
       }
   }, [isOpen, initialMode]);
 
   if (!isOpen) return null;
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setPhotoFile(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,15 +65,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onGoogl
 
     try {
       if (mode === 'forgot-password') {
-          if (!email) {
-              throw new Error('Please enter your email address');
-          }
-          if (onResetPassword) {
-              await onResetPassword(email);
-          } else {
-               // Fallback simulation if prop not provided
-               await new Promise(resolve => setTimeout(resolve, 1000));
-          }
+          if (!email) throw new Error('Please enter your email address');
+          await sendPasswordResetEmail(auth, email);
           setResetSent(true);
           setIsLoading(false);
           return;
@@ -60,32 +76,60 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onGoogl
       if (!email || !password) {
         throw new Error('Please fill in all fields');
       }
-      if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters');
-      }
-      if (mode === 'signup' && !name) {
-        throw new Error('Please enter your name');
+      if (mode === 'signup') {
+        if (password.length < 6) throw new Error('Password must be at least 6 characters');
+        if (password !== repeatPassword) throw new Error('Passwords do not match');
+        if (!name) throw new Error('Please enter your name');
       }
 
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      if (mode === 'login') {
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          onClose();
+        } catch (err: any) {
+          const errorCode = err.code;
+          if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-email') {
+            throw new Error('Password or Email Incorrect');
+          }
+          throw err;
+        }
+      } else if (mode === 'signup') {
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+          
+          let photoURL = '';
+          if (photoFile) {
+            const storageRef = ref(storage, `profile_photos/${user.uid}`);
+            await uploadBytes(storageRef, photoFile);
+            photoURL = await getDownloadURL(storageRef);
+          }
 
-      // In a real app, this is where you'd call your backend API
-      // For this demo, we'll simulate a successful login/signup
-      await onLogin(email, mode === 'signup' ? name : undefined);
+          await updateProfile(user, {
+            displayName: name,
+            photoURL: photoURL || null
+          });
+          
+          onClose();
+        } catch (err: any) {
+          const errorCode = err.code;
+          if (errorCode === 'auth/email-already-in-use') {
+             // Specific requirement: "User already exists. Sign in?"
+             setError("User already exists. Sign in?");
+             setIsLoading(false);
+             return; // Don't throw, just return so we display the error state
+          }
+          throw err;
+        }
+      }
       
-      onClose();
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
     } finally {
-      if (mode !== 'forgot-password') setIsLoading(false);
+      if (mode !== 'forgot-password' && error !== "User already exists. Sign in?") setIsLoading(false);
     }
   };
 
-  const handleClose = () => {
-      onClose();
-  };
-  
   const switchMode = (newMode: 'login' | 'signup' | 'forgot-password') => {
       setMode(newMode);
       setError('');
@@ -94,10 +138,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onGoogl
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 animate-fade-in-up">
-      <div className="bg-white dark:bg-brand-gray-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
+      <div className="bg-white dark:bg-brand-gray-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative max-h-[90vh] overflow-y-auto">
         <button 
-          onClick={handleClose}
-          className="absolute top-4 right-4 p-1 rounded-full text-brand-gray-400 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 focus:outline-none"
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1 rounded-full text-brand-gray-400 hover:bg-brand-gray-100 dark:hover:bg-brand-gray-700 focus:outline-none z-10"
         >
           <XIcon className="w-6 h-6" />
         </button>
@@ -135,16 +179,41 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onGoogl
 
                   <form onSubmit={handleSubmit} className="space-y-4">
                     {mode === 'signup' && (
-                      <div>
-                        <label className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300 mb-1">Full Name</label>
-                        <input
-                          type="text"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          className="w-full px-4 py-2 rounded-lg border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 focus:ring-2 focus:ring-brand-gold-DEFAULT focus:border-transparent outline-none transition-all"
-                          placeholder="John Doe"
-                        />
-                      </div>
+                      <>
+                         <div className="flex justify-center mb-4">
+                            <div 
+                                className="relative w-24 h-24 rounded-full bg-brand-gray-100 dark:bg-brand-gray-700 border-2 border-dashed border-brand-gray-300 dark:border-brand-gray-600 flex items-center justify-center cursor-pointer overflow-hidden hover:border-brand-gold-DEFAULT transition-colors"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                {photoPreview ? (
+                                    <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="flex flex-col items-center text-brand-gray-400">
+                                        <UploadIcon className="w-6 h-6 mb-1" />
+                                        <span className="text-[10px]">Photo</span>
+                                    </div>
+                                )}
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    className="hidden" 
+                                    accept="image/*" 
+                                    onChange={handlePhotoChange} 
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300 mb-1">Full Name</label>
+                            <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="w-full px-4 py-2 rounded-lg border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 focus:ring-2 focus:ring-brand-gold-DEFAULT focus:border-transparent outline-none transition-all"
+                            placeholder="John Doe"
+                            />
+                        </div>
+                      </>
                     )}
 
                     <div>
@@ -159,32 +228,51 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onGoogl
                     </div>
 
                     {mode !== 'forgot-password' && (
-                        <div>
-                        <div className="flex justify-between items-center mb-1">
-                             <label className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300">Password</label>
-                             {mode === 'login' && (
-                                 <button 
-                                    type="button"
-                                    onClick={() => switchMode('forgot-password')}
-                                    className="text-xs text-brand-gold-dark dark:text-brand-gold-DEFAULT hover:underline focus:outline-none"
-                                 >
-                                     Forgot Password?
-                                 </button>
-                             )}
-                        </div>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-2 rounded-lg border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 focus:ring-2 focus:ring-brand-gold-DEFAULT focus:border-transparent outline-none transition-all"
-                            placeholder="••••••••"
-                        />
-                        </div>
+                        <>
+                            <div>
+                            <div className="flex justify-between items-center mb-1">
+                                <label className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300">Password</label>
+                                {mode === 'login' && (
+                                    <button 
+                                        type="button"
+                                        onClick={() => switchMode('forgot-password')}
+                                        className="text-xs text-brand-gold-dark dark:text-brand-gold-DEFAULT hover:underline focus:outline-none"
+                                    >
+                                        Forgot Password?
+                                    </button>
+                                )}
+                            </div>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full px-4 py-2 rounded-lg border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 focus:ring-2 focus:ring-brand-gold-DEFAULT focus:border-transparent outline-none transition-all"
+                                placeholder="••••••••"
+                            />
+                            </div>
+                            
+                            {mode === 'signup' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-brand-gray-700 dark:text-brand-gray-300 mb-1">Repeat Password</label>
+                                    <input
+                                        type="password"
+                                        value={repeatPassword}
+                                        onChange={(e) => setRepeatPassword(e.target.value)}
+                                        className="w-full px-4 py-2 rounded-lg border border-brand-gray-300 dark:border-brand-gray-600 bg-white dark:bg-brand-gray-700 text-brand-gray-900 dark:text-brand-gray-100 focus:ring-2 focus:ring-brand-gold-DEFAULT focus:border-transparent outline-none transition-all"
+                                        placeholder="••••••••"
+                                    />
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {error && (
                       <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm p-3 rounded-lg text-center">
-                        {error}
+                        {error === "User already exists. Sign in?" ? (
+                             <span>
+                                 User already exists. <button onClick={() => switchMode('login')} className="underline font-bold hover:text-red-800 dark:hover:text-red-200">Sign in?</button>
+                             </span>
+                        ) : error}
                       </div>
                     )}
 
@@ -217,7 +305,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLogin, onGoogl
 
                         <button
                         type="button"
-                        onClick={() => { onGoogleLogin(); onClose(); }}
+                        onClick={onGoogleLogin}
                         className="mt-4 w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm bg-white dark:bg-brand-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-brand-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-gold-DEFAULT"
                         >
                         <img 
